@@ -84,14 +84,73 @@
         border-radius: 12px;
         padding: 20px;
     }
+
+    /* ── Fixed-height POS layout ── */
+    .pos-row {
+        height: calc(100vh - 130px);
+        overflow: hidden;
+    }
+
+    .pos-left-col {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* Search card — fixed height with scrollable results */
+    .pos-search-card {
+        flex: 0 0 auto;
+        max-height: 45%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+    }
+
+    .pos-search-card .card-body {
+        flex: 1 1 auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0;
+    }
+
+    #searchResults {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        margin-top: 0.5rem;
+        padding-right: 4px;
+    }
+
+    /* Cart card — fills remaining space with scrollable body */
+    .pos-cart-card {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .pos-cart-card .card-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding-top: 0.5rem;
+    }
+
+    /* Right checkout column — scrollable independently */
+    .pos-right-col {
+        height: 100%;
+        overflow-y: auto;
+    }
 </style>
 <div class="container-fluid">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <div class="row">
+    <div class="row pos-row">
         <!-- Left Panel - Product Search & Cart -->
-        <div class="col-md-8">
+        <div class="col-md-8 pos-left-col">
             <!-- Product Search -->
-            <div class="card mb-3">
+            <div class="card pos-search-card">
                 <div class="card-header">
                     <h5 class="mb-0">Search Products</h5>
                 </div>
@@ -111,7 +170,7 @@
             </div>
 
             <!-- Sale Items Cart -->
-            <div class="card">
+            <div class="card pos-cart-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Sale Items</h5>
                     <div>
@@ -144,7 +203,7 @@
         </div>
 
         <!-- Right Panel - Checkout -->
-        <div class="col-md-4">
+        <div class="col-md-4 pos-right-col">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Checkout</h5>

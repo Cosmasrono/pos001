@@ -849,7 +849,6 @@
                     </div>
                 </div>
             </section>
-
             <!-- Modules Section -->
             <section id="modules" class="section-spacing">
                 <div class="section-header">
