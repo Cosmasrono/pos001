@@ -378,7 +378,7 @@
         <div class="wing-stat sales">
             <div class="stat-icon sales"><i class="bi bi-cash-stack"></i></div>
             <div class="stat-body">
-                <div class="stat-label">Today's Sales</div>
+                <div class="stat-label">Today's {{ auth()->user()->isOwner() ? 'Business' : 'My' }} Sales</div>
                 <div class="stat-value" id="salesValue">
                     <span id="salesMasked">KES •••••</span>
                     <span id="salesActual" style="display:none">KES {{ number_format($todaySales, 2) }}</span>
@@ -396,7 +396,7 @@
         <div class="wing-stat profit">
             <div class="stat-icon profit"><i class="bi bi-graph-up-arrow"></i></div>
             <div class="stat-body">
-                <div class="stat-label">MTD Profit</div>
+                <div class="stat-label">MTD Business Profit</div>
                 <div class="stat-value {{ $mtdProfit < 0 ? 'danger' : '' }}">
                     KES {{ number_format($mtdProfit, 2) }}
                 </div>
@@ -411,7 +411,7 @@
         <div class="wing-stat revenue">
             <div class="stat-icon revenue"><i class="bi bi-currency-dollar"></i></div>
             <div class="stat-body">
-                <div class="stat-label">MTD Revenue</div>
+                <div class="stat-label">MTD {{ auth()->user()->isOwner() ? 'Business' : 'My' }} Revenue</div>
                 <div class="stat-value">KES {{ number_format($mtdRevenue, 2) }}</div>
             </div>
         </div>
@@ -422,7 +422,7 @@
         <div class="wing-stat stock">
             <div class="stat-icon stock"><i class="bi bi-exclamation-triangle"></i></div>
             <div class="stat-body">
-                <div class="stat-label">Low Stock</div>
+                <div class="stat-label">Low Stock (Total)</div>
                 <div class="stat-value warning">{{ $lowStockProducts }} items</div>
             </div>
         </div>
@@ -461,74 +461,86 @@
 
     {{-- Sales Table --}}
     <div class="col-12 col-lg-8 order-2 order-lg-1">
+        {{-- Active Shifts Monitor (Owner Only) --}}
+        @if(auth()->user()->isOwner() && $allActiveShifts && $allActiveShifts->count() > 0)
+        <div class="wing-table-card mb-3">
+            <div class="wing-table-header" style="background: var(--primary-light);">
+                <h5 style="color: var(--primary);"><i class="bi bi-people-fill me-2"></i>Live Active Staff</h5>
+                <span class="badge bg-primary rounded-pill">{{ $allActiveShifts->count() }} active</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Staff Name</th>
+                            <th>Branch</th>
+                            <th>Started At</th>
+                            <th>Starting Cash</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($allActiveShifts as $shift)
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-primary-light text-primary d-flex align-items-center justify-content-center me-2" style="width:30px;height:30px;font-size:0.75rem;font-weight:bold;">
+                                        {{ substr($shift->cashier->name, 0, 1) }}
+                                    </div>
+                                    <strong>{{ $shift->cashier->name }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ $shift->branch->name ?? 'Default' }}</td>
+                            <td>{{ $shift->created_at->format('H:i') }} <small class="text-muted">({{ $shift->created_at->diffForHumans() }})</small></td>
+                            <td>KES {{ number_format($shift->opening_cash, 2) }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
         <div class="wing-table-card">
             <div class="wing-table-header">
-                @if(auth()->user()->isSuperAdmin() && $branchSales)
-                    <h5>Branch Sales Today</h5>
-                @else
-                    <h5>Recent Sales</h5>
-                    <a href="{{ route('sales.index') }}" class="btn btn-sm btn-outline-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;border-radius:20px;">View All</a>
-                @endif
+                <h5>Recent Sales {{ auth()->user()->isOwner() ? '(Across Business)' : '' }}</h5>
+                <a href="{{ route('sales.index') }}" class="btn btn-sm btn-outline-primary" style="font-size:0.78rem;padding:0.3rem 0.75rem;border-radius:20px;">View All</a>
             </div>
 
-            @if(auth()->user()->isSuperAdmin() && $branchSales)
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Receipt</th>
+                            @if(auth()->user()->isOwner()) <th>Branch</th> @endif
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th class="d-none d-sm-table-cell">Method</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($recentSales as $sale)
                             <tr>
-                                <th>Branch</th>
-                                <th>Count</th>
-                                <th>Total</th>
+                                <td>
+                                    <a href="{{ route('sales.show', $sale) }}" class="receipt-link">
+                                        #{{ $sale->receipt_number }}
+                                    </a>
+                                </td>
+                                @if(auth()->user()->isOwner()) <td><small>{{ $sale->branch->name ?? 'N/A' }}</small></td> @endif
+                                <td>{{ $sale->customer?->name ?? 'Walk-in' }}</td>
+                                <td><strong>KES {{ number_format($sale->total_amount, 2) }}</strong></td>
+                                <td class="d-none d-sm-table-cell">
+                                    @php $method = strtolower($sale->primary_payment_method) @endphp
+                                    <span class="badge-method badge-{{ $method }}">{{ ucfirst($sale->primary_payment_method) }}</span>
+                                </td>
+                                <td style="color:var(--text-muted);">{{ $sale->created_at->format('H:i') }}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($branchSales as $branch)
-                                <tr>
-                                    <td><strong>{{ $branch['name'] }}</strong></td>
-                                    <td>{{ $branch['sales_count'] }}</td>
-                                    <td><strong>KES {{ number_format($branch['total_amount'], 2) }}</strong></td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="3"><div class="empty-state"><i class="bi bi-shop"></i>No branch sales today</div></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Receipt</th>
-                                <th>Customer</th>
-                                <th>Amount</th>
-                                <th class="d-none d-sm-table-cell">Method</th>
-                                <th>Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($recentSales as $sale)
-                                <tr>
-                                    <td>
-                                        <a href="{{ route('sales.show', $sale) }}" class="receipt-link">
-                                            #{{ $sale->receipt_number }}
-                                        </a>
-                                    </td>
-                                    <td>{{ $sale->customer?->name ?? 'Walk-in' }}</td>
-                                    <td><strong>KES {{ number_format($sale->total_amount, 2) }}</strong></td>
-                                    <td class="d-none d-sm-table-cell">
-                                        @php $method = strtolower($sale->primary_payment_method) @endphp
-                                        <span class="badge-method badge-{{ $method }}">{{ ucfirst($sale->primary_payment_method) }}</span>
-                                    </td>
-                                    <td style="color:var(--text-muted);">{{ $sale->created_at->format('H:i') }}</td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="5"><div class="empty-state"><i class="bi bi-receipt"></i>No sales yet today</div></td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            @endif
+                        @empty
+                            <tr><td colspan="{{ auth()->user()->isOwner() ? '6' : '5' }}"><div class="empty-state"><i class="bi bi-receipt"></i>No sales yet today</div></td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -556,6 +568,10 @@
                 <hr class="qa-divider">
 
                 <div class="qa-section-label">Inventory</div>
+                <a href="{{ route('stock.adjustments.index') }}" class="btn-wing-danger mb-2" style="background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.25); color: #ef4444; text-decoration: none;">
+                    <i class="bi bi-shield-exclamation"></i> Record Write-off
+                </a>
+
                 @if ($lowStockProducts > 0)
                     <a href="{{ route('products.index') }}" class="btn-wing-warning">
                         <i class="bi bi-exclamation-triangle"></i>

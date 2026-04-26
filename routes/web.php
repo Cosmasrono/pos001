@@ -33,6 +33,18 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
     Route::get('register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'create'])->name('register');
     Route::post('register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
+
+    Route::get('forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])
+        ->name('password.request');
+
+    Route::post('forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
+        ->name('password.email');
+
+    Route::get('reset-password/{token}', [App\Http\Controllers\Auth\NewPasswordController::class, 'edit'])
+        ->name('password.reset');
+
+    Route::post('reset-password', [App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
+        ->name('password.store');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -52,7 +64,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('stock-transfers/stock-info', [StockTransferController::class, 'getStockInfo'])->name('stock-transfers.stock-info');
     Route::resource('stock-transfers', StockTransferController::class);
 
-    
+    // Stock Write-offs / Adjustments (Theft, Damage, Expiry, etc.)
+    Route::get('stock/adjustments', [App\Http\Controllers\StockAdjustmentController::class, 'index'])->name('stock.adjustments.index');
+    Route::post('stock/adjustments', [App\Http\Controllers\StockAdjustmentController::class, 'store'])->name('stock.adjustments.store');
+
     Route::get('pos', [SalesController::class, 'create'])->name('sales.pos');
     Route::get('pos/products', [SalesController::class, 'getProducts'])->name('pos.products');
     Route::get('pos/search', [SalesController::class, 'searchProduct'])->name('pos.search');
@@ -77,6 +92,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('shifts', [ShiftController::class, 'store'])->name('shifts.store');
     Route::post('shifts/close', [ShiftController::class, 'close'])->name('shifts.close');
     Route::get('shifts/active', [ShiftController::class, 'getActive'])->name('shifts.active');
+    Route::get('shifts/{shift}', [ShiftController::class, 'show'])->name('shifts.show');
 
     Route::resource('expense-categories', ExpenseCategoryController::class);
     Route::resource('expenses', ExpenseController::class);
@@ -117,6 +133,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Logout
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::post('/password/change', [App\Http\Controllers\UserController::class, 'changePassword'])->name('password.change');
 });
 
 // System Unavailable Page (Public if deactivated)

@@ -41,7 +41,6 @@ class OwnerSeeder extends Seeder
             ]
         );
         
-        // Assign owner to this branch if not assigned
         if (!$owner->branch_id) {
             $owner->update(['branch_id' => $branch->id]);
         }

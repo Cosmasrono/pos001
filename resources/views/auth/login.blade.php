@@ -658,7 +658,7 @@
                         <input type="checkbox" id="remember" name="remember" class="form-check-input">
                         <label class="form-check-label" for="remember">Keep me signed in</label>
                     </div>
-                    <a href="#" class="forgot-link">Forgot Password?</a>
+                    <a href="{{ route('password.request') }}" class="forgot-link">Forgot Password?</a>
                 </div>
 
                 <button type="submit" class="btn btn-login">
@@ -669,6 +669,9 @@
             <div class="footer-text">
                 Don't have an account? <a href="{{ route('register') }}" class="register-link">Create one</a>
             </div>
+        </div>
+    </div>
+
         </div>
     </div>
 

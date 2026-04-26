@@ -648,9 +648,24 @@
                 </div>
 
                 <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}"
+                       href="{{ route('categories.index') }}">
+                        <i class="bi bi-tags nav-icon"></i> Categories
+                    </a>
+                </div>
+
+                <div class="nav-item">
                     <a class="nav-link {{ request()->routeIs('stock-transfers.*') ? 'active' : '' }}"
                        href="{{ route('stock-transfers.index') }}">
                         <i class="bi bi-arrow-left-right nav-icon"></i> Stock Transfers
+                    </a>
+                </div>
+
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('stock.adjustments.*') ? 'active' : '' }}"
+                       href="{{ route('stock.adjustments.index') }}">
+                        <i class="bi bi-shield-exclamation nav-icon" style="color: #ef4444;"></i> Stock Write-offs
+                        <span class="nav-badge" style="background: rgba(239,68,68,0.15); color: #ef4444;">Audit</span>
                     </a>
                 </div>
 
@@ -792,6 +807,7 @@
                             <div id="connectionStatus" class="badge bg-success">
                                 <i class="bi bi-wifi"></i> Online
                             </div>
+                            @yield('navbar-actions')
                             @if(auth()->check())
                                 <span class="badge bg-primary">{{ auth()->user()->name }}</span>
                             @endif

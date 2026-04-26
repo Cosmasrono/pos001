@@ -64,8 +64,14 @@
                                         <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-grid text-muted"></i></span>
-                                            <input type="text" id="category_id" name="category_id" class="form-control border-start-0 @error('category_id') is-invalid @enderror" 
-                                                   value="{{ old('category_id') }}" placeholder="Category name" required>
+                                            <select name="category_id" id="category_id" class="form-select border-start-0 @error('category_id') is-invalid @enderror" required>
+                                                <option value="">Select Category</option>
+                                                @foreach($categories as $category)
+                                                    <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                                                        {{ $category->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
                                             @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>

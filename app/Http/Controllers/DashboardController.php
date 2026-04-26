@@ -16,74 +16,73 @@ class DashboardController extends Controller
     public function index(): View
     {
         $user = auth()->user();
+        $isPowerUser = $user->isSuperAdmin() || $user->isOwner();
         
-        // Get today's sales - only user's own sales
-        $todaySales = Sale::where('cashier_id', $user->id)
-            ->whereDate('created_at', today())
-            ->sum('total_amount');
+        // Today's Sales - Global for Admin, personal for Cashier
+        $salesQuery = Sale::whereDate('created_at', today());
+        if (!$isPowerUser) {
+            $salesQuery->where('cashier_id', $user->id);
+        }
+        $todaySales = $salesQuery->sum('total_amount');
 
-        // Get total products
+        // Total products count
         $totalProducts = Product::where('is_active', true)->count();
 
-        // Get low stock products
-        $lowStockProducts = Product::whereRaw('quantity_in_stock <= reorder_level')
-            ->where('is_active', true)
+        // Low stock across all branches
+        $lowStockProducts = ProductBranchStock::join('products', 'product_branch_stocks.product_id', '=', 'products.id')
+            ->whereColumn('product_branch_stocks.quantity_in_stock', '<=', 'products.reorder_level')
+            ->where('products.is_active', true)
+            ->distinct('product_id')
             ->count();
 
-        // Get active shift
+        // Active shift (personal)
         $activeShift = Shift::where('status', 'open')
             ->where('cashier_id', $user->id)
             ->first();
 
-        // Get recent sales - only user's own sales
-        $recentSales = Sale::where('cashier_id', $user->id)
-            ->latest()
-            ->take(10)
-            ->with(['cashier', 'customer', 'branch'])
-            ->get();
-
-        // Get branch-wise sales for SuperAdmin
-        $branchSales = null;
-        if ($user->isSuperAdmin()) {
-            $branchSales = \App\Models\Branch::with([
-                'sales' => function($q) {
-                    $q->whereDate('created_at', today())
-                      ->where('status', 'completed');
-                }
-            ])
-            ->where('is_active', true)
-            ->get()
-            ->map(function($branch) {
-                return [
-                    'name' => $branch->name,
-                    'sales_count' => $branch->sales->count(),
-                    'total_amount' => $branch->sales->sum('total_amount'),
-                ];
-            });
+        // Recent Sales
+        $recentSalesQuery = Sale::latest()->take(10)->with(['cashier', 'customer', 'branch']);
+        if (!$isPowerUser) {
+            $recentSalesQuery->where('cashier_id', $user->id);
         }
+        $recentSales = $recentSalesQuery->get();
 
-        // Month-to-date Profit & Loss details - only user's own sales
+        // Month-to-date stats
         $startOfMonth = now()->startOfMonth();
         $endOfMonth = now()->endOfMonth();
 
-        $mtdRevenue = Sale::where('cashier_id', $user->id)
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->where('status', 'completed')
-            ->sum('total_amount');
+        $mtdRevenueQuery = Sale::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->where('status', 'completed');
+        if (!$isPowerUser) {
+            $mtdRevenueQuery->where('cashier_id', $user->id);
+        }
+        $mtdRevenue = $mtdRevenueQuery->sum('total_amount');
 
-        $mtdCogs = \DB::table('sale_items')
+        // Profit & Loss calculation (Global for Admin)
+        $mtdCogsQuery = \DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->join('products', 'sale_items.product_id', '=', 'products.id')
-            ->where('sales.cashier_id', $user->id)
             ->whereBetween('sales.created_at', [$startOfMonth, $endOfMonth])
-            ->where('sales.status', 'completed')
-            ->sum(\DB::raw('sale_items.quantity * products.cost_price'));
+            ->where('sales.status', 'completed');
+        
+        if (!$isPowerUser) {
+            $mtdCogsQuery->where('sales.cashier_id', $user->id);
+        }
+        $mtdCogs = $mtdCogsQuery->sum(\DB::raw('sale_items.quantity * products.cost_price'));
 
         $mtdExpenses = \App\Models\Expense::whereBetween('expense_date', [$startOfMonth, $endOfMonth])
             ->where('status', 'approved')
             ->sum('amount');
 
         $mtdProfit = ($mtdRevenue - $mtdCogs) - $mtdExpenses;
+
+        // For Owner: Active Shifts across all branches
+        $allActiveShifts = null;
+        if ($isPowerUser) {
+            $allActiveShifts = Shift::with(['cashier', 'branch'])
+                ->where('status', 'open')
+                ->get();
+        }
 
         $isSystemActive = \App\Models\Setting::isSystemActive();
         $subscriptionStatus = \App\Models\Setting::get('subscription_status', 'active');
@@ -94,10 +93,10 @@ class DashboardController extends Controller
             'totalProducts' => $totalProducts,
             'lowStockProducts' => $lowStockProducts,
             'activeShift' => $activeShift,
+            'allActiveShifts' => $allActiveShifts,
             'recentSales' => $recentSales,
             'mtdProfit' => $mtdProfit,
             'mtdRevenue' => $mtdRevenue,
-            'branchSales' => $branchSales,
             'isSystemActive' => $isSystemActive,
             'subscriptionStatus' => $subscriptionStatus,
             'subscriptionExpiresAt' => $subscriptionExpiresAt,

@@ -94,9 +94,16 @@ class ShiftController extends Controller
         // Clear the cart for this cashier
         CartItem::where('user_id', auth()->id())->delete();
 
-        $variance = $validated['closing_cash'] - $expectedClosing;
+        return redirect()->route('shifts.show', $shift->id)->with('success', 'Shift closed and reconciled.');
+    }
 
-        return back()->with('success', 'Shift closed. Variance: KES ' . number_format($variance, 2) . ' (' . ($variance >= 0 ? 'Over' : 'Short') . ')');
+    /**
+     * Display a reconciliation report for the shift
+     */
+    public function show(Shift $shift): \Illuminate\View\View
+    {
+        $shift->load(['cashier', 'branch', 'openedBy', 'closedBy']);
+        return view('shifts.show', compact('shift'));
     }
 
     /**

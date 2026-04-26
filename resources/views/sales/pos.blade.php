@@ -4,6 +4,23 @@
 
 @section('page-title', 'Point of Sale (POS)')
 
+@section('navbar-actions')
+    <div class="d-flex align-items-center gap-2">
+        @if($hasActiveShift)
+            <div class="badge bg-success-light text-success border border-success d-none d-md-block">
+                <i class="bi bi-clock-history"></i> Shift Started: {{ $shift->opened_at->format('h:i A') }}
+            </div>
+            <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#closeShiftModal">
+                <i class="bi bi-power me-1"></i> Close Shift
+            </button>
+        @else
+            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#openShiftModal">
+                <i class="bi bi-play-fill me-1"></i> Open Shift
+            </button>
+        @endif
+    </div>
+@endsection
+
 @section('content')
 <style>
     body {
@@ -144,6 +161,7 @@
         overflow-y: auto;
     }
 </style>
+
 <div class="container-fluid">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <div class="row pos-row">
@@ -333,9 +351,15 @@
                         @endif
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm" id="completeSaleBtn" @if(!($hasActiveShift ?? true)) disabled @endif>
-                                <i class="bi bi-check-circle"></i> Complete Sale
-                            </button>
+                            @if($hasActiveShift)
+                                <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm py-3" id="completeSaleBtn">
+                                    <i class="bi bi-check-circle me-2"></i>Complete Sale
+                                </button>
+                            @else
+                                <button type="button" class="btn btn-warning btn-lg rounded-pill shadow-sm py-3" data-bs-toggle="modal" data-bs-target="#openShiftModal">
+                                    <i class="bi bi-play-circle me-2"></i>Open Shift to Sell
+                                </button>
+                            @endif
                             <button type="button" class="btn btn-link text-muted btn-sm" id="cancelBtn">Reset Cart</button>
                         </div>
                     </form>
@@ -432,6 +456,95 @@
 
 @push('scripts')
 <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+<!-- Open Shift Modal -->
+<div class="modal fade" id="openShiftModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form action="{{ route('shifts.store') }}" method="POST">
+                @csrf
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold">🚀 Open New Shift</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Opening Cash Balance (KES)</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0 text-muted small">KES</span>
+                            <input type="number" name="opening_cash" class="form-control border-start-0 fw-bold" placeholder="0.00" step="0.01" min="0" required>
+                        </div>
+                        <small class="text-muted mt-2 d-block">Enter the physical cash currently in your drawer.</small>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Notes</label>
+                        <textarea name="opening_notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4">
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold">
+                        <i class="bi bi-play-fill"></i> Start Shift
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Close Shift (Reconciliation) Modal -->
+<div class="modal fade" id="closeShiftModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <form action="{{ route('shifts.close') }}" method="POST">
+                @csrf
+                <div class="modal-header border-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold">🏁 Close Shift & Reconcile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 mb-4" style="background: var(--info-light);">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi bi-info-circle-fill fs-4 text-info"></i>
+                            <div class="small">
+                                Counting your money accurately ensures your sales match your drawer.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">Physical Cash Counted (KES)</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-primary text-white border-0">KES</span>
+                            <input type="number" name="closing_cash" class="form-control border-primary fw-bold" placeholder="0.00" step="0.01" min="0" required>
+                        </div>
+                        <small class="text-muted mt-2 d-block">Enter the total cash physically present in the drawer.</small>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">M-PESA TOTAL</label>
+                            <input type="number" name="closing_mpesa" class="form-control form-control-sm bg-light border-0 fw-bold" value="0.00" readonly>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-muted">CARD TOTAL</label>
+                            <input type="number" name="closing_card" class="form-control form-control-sm bg-light border-0 fw-bold" value="0.00" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Closing Notes</label>
+                        <textarea name="closing_notes" class="form-control" rows="2" placeholder="Explain any shortages or issues..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4">
+                    <button type="submit" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow-lg" onclick="return confirm('Are you sure you want to close this shift and submit reconciliation?')">
+                        <i class="bi bi-power"></i> Submit & Close Shift
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Initialize Dexie DB
@@ -977,41 +1090,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Please enter M-Pesa phone number');
                 return;
             }
-            
-            // Initiate M-Pesa STK Push
             await initiateMpesaPayment(phone, total);
             return;
         }
-        
-        // For other payment methods, validate amount tendered
         const tendered = parseFloat(document.getElementById('amountTendered').value) || 0;
-        
         if (tendered < total) {
             alert('Amount tendered is less than total amount.');
             return;
         }
-        
-        // Submit the form normally
         this.submit();
     });
-    
-    // M-Pesa Payment Functions
     let mpesaCheckoutRequestId = null;
     let mpesaPollingInterval = null;
-    
     async function initiateMpesaPayment(phone, amount) {
         try {
             const modal = new bootstrap.Modal(document.getElementById('mpesaModal'));
             showMpesaStatus('pending');
             modal.show();
-            
             document.getElementById('mpesaPhoneDisplay').textContent = `Phone: ${phone}`;
             document.getElementById('mpesaAmountDisplay').textContent = `Amount: KES ${amount.toFixed(2)}`;
-            
-            // Make the actual API call to initiate STK Push
- const response = await fetch('/api/mpesa/initiate', {
+            const response = await fetch('/api/mpesa/initiate', {
     method: 'POST',
-    credentials: 'include',  // ← THIS IS CRITICAL
+    credentials: 'include',
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -1022,11 +1122,8 @@ document.addEventListener('DOMContentLoaded', function() {
         amount: amount
     })
 });
-
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers);
-
-            // Check if response is HTML (error page)
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('text/html')) {
                 const htmlResponse = await response.text();
@@ -1035,14 +1132,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('mpesaErrorMessage').textContent = 'Server error: API returned HTML. Check browser console for details.';
                 return;
             }
-
             const data = await response.json();
-            console.log('M-Pesa Response:', data);
-
+            console.log('M-Pesa Response:', data)
             if (data.success) {
                 console.log('STK Push initiated:', data);
                 mpesaCheckoutRequestId = data.data.checkout_request_id;
-                
                 // Poll for payment status
                 pollMpesaStatus(mpesaCheckoutRequestId);
             } else {
@@ -1062,7 +1156,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function pollMpesaStatus(checkoutRequestId) {
-        // Poll every 3 seconds for payment status
         mpesaPollingInterval = setInterval(async () => {
             try {
                 const response = await fetch(`/api/mpesa/status/${checkoutRequestId}`, {
@@ -1096,20 +1189,27 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('mpesaStatusSuccess').style.display = status === 'success' ? 'block' : 'none';
         document.getElementById('mpesaStatusFailed').style.display = status === 'failed' ? 'block' : 'none';
     }
-    
-    // M-Pesa Modal Handlers
     document.getElementById('mpesaCancelBtn').addEventListener('click', function() {
         if (mpesaPollingInterval) {
             clearInterval(mpesaPollingInterval);
         }
         bootstrap.Modal.getInstance(document.getElementById('mpesaModal')).hide();
     });
-    
     document.getElementById('mpesaFinishBtn').addEventListener('click', function() {
-        // Set M-Pesa as payment method and submit form
         document.getElementById('amountTendered').value = document.getElementById('totalInput').value;
         document.getElementById('posForm').submit();
     });
+    const closeShiftModal = document.getElementById('closeShiftModal');
+    if (closeShiftModal) {
+        closeShiftModal.addEventListener('show.bs.modal', async function () {
+            try {
+                const response = await fetch('{{ route("shifts.active") }}');
+                const data = await response.json();
+                if (data.shift) {
+                }
+            } catch (e) { console.error(e); }
+        });
+    }
 });
 </script>
 @endpush

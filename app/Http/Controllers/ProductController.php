@@ -45,7 +45,11 @@ class ProductController extends Controller
     public function create(): View
     {
         $branches = Branch::orderByDesc('is_main')->get();  
-        return view('products.create', ['branches' => $branches]);
+        $categories = Category::orderBy('name')->get();
+        return view('products.create', [
+            'branches' => $branches,
+            'categories' => $categories
+        ]);
     }
 
 public function store(Request $request): RedirectResponse
@@ -55,7 +59,7 @@ public function store(Request $request): RedirectResponse
         'sku'                     => 'nullable|unique:products|string|max:100',
         'barcode'                 => 'nullable|unique:products|string|max:100',
         'description'             => 'nullable|string',
-        'category_id'             => 'required|string|max:255',
+        'category_id'             => 'required|exists:categories,id',
         'cost_price'              => 'nullable|numeric|min:0',
         'selling_price'           => 'required|numeric|min:0',
         'reorder_level'           => 'required|integer|min:0',
@@ -64,8 +68,6 @@ public function store(Request $request): RedirectResponse
         'branch_quantities.*'     => 'nullable|integer|min:0',
     ]);
 
-    $category = Category::firstOrCreate(['name' => $validated['category_id']]);
-    $validated['category_id'] = $category->id;
     $validated['cost_price'] ??= 0;
 
     // Auto-generate SKU based on timestamp: ddmmyy-hhmmss-microseconds
@@ -126,8 +128,13 @@ public function store(Request $request): RedirectResponse
     public function edit(Product $product): View
     {
         $branches = Branch::all();
+        $categories = Category::orderBy('name')->get();
         $product->load('branchStocks');
-        return view('products.edit', ['product' => $product, 'branches' => $branches]);
+        return view('products.edit', [
+            'product' => $product, 
+            'branches' => $branches,
+            'categories' => $categories
+        ]);
     }
 
     public function update(Request $request, Product $product): RedirectResponse
@@ -137,7 +144,7 @@ public function store(Request $request): RedirectResponse
             'sku' => 'required|unique:products,sku,' . $product->id . '|string|max:100',
             'barcode' => 'nullable|unique:products,barcode,' . $product->id . '|string|max:100',
             'description' => 'nullable|string',
-            'category_id' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
             'cost_price' => 'nullable|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
             'reorder_level' => 'required|integer|min:0',
@@ -145,9 +152,6 @@ public function store(Request $request): RedirectResponse
             'total_initial_stock' => 'required|integer|min:0',
         ]);
 
-        // Find or create category
-        $category = Category::firstOrCreate(['name' => $validated['category_id']]);
-        $validated['category_id'] = $category->id;
         $validated['cost_price'] ??= 0;
         $validated['quantity_in_stock'] = $validated['total_initial_stock'];
 
