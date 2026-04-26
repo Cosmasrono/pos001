@@ -63,7 +63,15 @@ class SalesController extends Controller
     public function getProducts(): JsonResponse
     {
         $user = auth()->user();
-        $activeBranchId = $user->branch_id ?: (Branch::where('is_main', true)->first()?->id ?: Branch::first()?->id);
+        $branch = Branch::where('id', $user->branch_id)->first() 
+               ?? Branch::where('is_main', true)->first() 
+               ?? Branch::first();
+
+        if (!$branch) {
+            return response()->json(['error' => 'No branch found. Please create a branch first.'], 404);
+        }
+
+        $activeBranchId = $branch->id;
         
         $products = Product::where('is_active', true)
             ->whereHas('branchStocks', function($q) use ($activeBranchId) {
@@ -100,7 +108,15 @@ class SalesController extends Controller
         }
 
         $user = auth()->user();
-        $activeBranchId = $user->branch_id ?: (Branch::where('is_main', true)->first()?->id ?: Branch::first()?->id);
+        $branch = Branch::where('id', $user->branch_id)->first() 
+               ?? Branch::where('is_main', true)->first() 
+               ?? Branch::first();
+
+        if (!$branch) {
+            return response()->json(['error' => 'No branch found.'], 404);
+        }
+
+        $activeBranchId = $branch->id;
         
         $products = Product::where('is_active', true)
             ->where(function ($q) use ($query) {

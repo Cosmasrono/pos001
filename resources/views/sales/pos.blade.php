@@ -610,12 +610,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const response = await fetch('{{ route("pos.products") }}');
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Sync failed:', errorData.error);
+                searchResults.innerHTML = `<div class="alert alert-danger">${errorData.error || 'Failed to sync products.'}</div>`;
+                return;
+            }
             const products = await response.json();
             await db.products.clear();
             await db.products.bulkAdd(products);
             console.log('Local product cache updated');
         } catch (e) {
             console.error('Failed to sync products:', e);
+            searchResults.innerHTML = '<div class="alert alert-danger">Error connecting to server. Please check your connection.</div>';
         }
     }
 

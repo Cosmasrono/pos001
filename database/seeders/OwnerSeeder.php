@@ -26,5 +26,24 @@ class OwnerSeeder extends Seeder
         if ($ownerRole) {
             $owner->roles()->syncWithoutDetaching([$ownerRole->id]);
         }
+
+        // Create a default branch if none exists
+        $branch = \App\Models\Branch::firstOrCreate(
+            ['name' => 'Default Branch'],
+            [
+                'code' => 'DEF-001',
+                'address' => 'Nairobi, Kenya',
+                'phone' => $owner->phone,
+                'is_active' => true,
+                'is_main' => true,
+                'owner_id' => $owner->id,
+                'stock_distribution_percentage' => 100.00
+            ]
+        );
+        
+        // Assign owner to this branch if not assigned
+        if (!$owner->branch_id) {
+            $owner->update(['branch_id' => $branch->id]);
+        }
     }
 }
