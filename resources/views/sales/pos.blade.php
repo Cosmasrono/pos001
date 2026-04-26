@@ -2,20 +2,23 @@
 
 @section('title', 'Wing POS')
 
-@section('page-title', 'Point of Sale (POS)')
+@section('page-title')
+    <span class="d-md-none">POS</span>
+    <span class="d-none d-md-inline">Point of Sale (POS)</span>
+@endsection
 
 @section('navbar-actions')
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-1 gap-md-2">
         @if($hasActiveShift)
             <div class="badge bg-success-light text-success border border-success d-none d-md-block">
                 <i class="bi bi-clock-history"></i> Shift Started: {{ $shift->opened_at->format('h:i A') }}
             </div>
-            <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#closeShiftModal">
-                <i class="bi bi-power me-1"></i> Close Shift
+            <button type="button" class="btn btn-sm btn-danger rounded-pill px-2 px-md-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#closeShiftModal">
+                <i class="bi bi-power"></i> <span class="d-none d-md-inline ms-1">Close Shift</span>
             </button>
         @else
-            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#openShiftModal">
-                <i class="bi bi-play-fill me-1"></i> Open Shift
+            <button type="button" class="btn btn-sm btn-primary rounded-pill px-2 px-md-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#openShiftModal">
+                <i class="bi bi-play-fill"></i> <span class="d-none d-md-inline ms-1">Open Shift</span>
             </button>
         @endif
     </div>
@@ -102,65 +105,126 @@
         padding: 20px;
     }
 
-    /* ── Fixed-height POS layout ── */
-    .pos-row {
-        height: calc(100vh - 130px);
-        overflow: hidden;
+    /* ── Responsive POS layout ── */
+    @media (min-width: 768px) {
+        .pos-row {
+            height: calc(100vh - 130px);
+            overflow: hidden;
+        }
+
+        .pos-left-col {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Search card — fixed height with scrollable results */
+        .pos-search-card {
+            flex: 0 0 auto;
+            max-height: 45%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .pos-search-card .card-body {
+            flex: 1 1 auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 0;
+        }
+
+        #searchResults {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            margin-top: 0.5rem;
+            padding-right: 4px;
+        }
+
+        /* Cart card — fills remaining space with scrollable body */
+        .pos-cart-card {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .pos-cart-card .card-body {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding-top: 0.5rem;
+        }
+
+        /* Right checkout column — scrollable independently */
+        .pos-right-col {
+            height: 100%;
+            overflow-y: auto;
+        }
     }
 
-    .pos-left-col {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        overflow: hidden;
+    @media (max-width: 767px) {
+        .pos-row {
+            height: auto;
+            overflow: visible;
+        }
+        .pos-search-card {
+            margin-bottom: 1rem;
+        }
+        .pos-cart-card {
+            margin-bottom: 1rem;
+            max-height: 400px;
+        }
+        .pos-cart-card .card-body {
+            overflow-y: auto;
+        }
     }
 
-    /* Search card — fixed height with scrollable results */
-    .pos-search-card {
-        flex: 0 0 auto;
-        max-height: 45%;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        margin-bottom: 0.75rem;
+    /* Floating Checkout Button for Mobile */
+    #mobileCheckoutBtn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1050;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+        display: none; /* Hidden by default, shown by JS on mobile */
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .pos-search-card .card-body {
-        flex: 1 1 auto;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        padding-bottom: 0;
+    #mobileCheckoutBtn:hover {
+        transform: scale(1.1);
+        background: var(--primary-hover);
     }
 
-    #searchResults {
-        flex: 1 1 auto;
-        overflow-y: auto;
-        margin-top: 0.5rem;
-        padding-right: 4px;
-    }
-
-    /* Cart card — fills remaining space with scrollable body */
-    .pos-cart-card {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        min-height: 0;
-    }
-
-    .pos-cart-card .card-body {
-        flex: 1 1 auto;
-        overflow-y: auto;
-        padding-top: 0.5rem;
-    }
-
-    /* Right checkout column — scrollable independently */
-    .pos-right-col {
-        height: 100%;
-        overflow-y: auto;
+    #mobileCheckoutBtn .badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: var(--danger);
+        color: white;
+        border-radius: 50%;
+        padding: 5px 8px;
+        font-size: 0.75rem;
+        border: 2px solid white;
     }
 </style>
+
+<button type="button" id="mobileCheckoutBtn" class="d-md-none" title="Go to Checkout">
+    <i class="bi bi-cart-check-fill"></i>
+    <span class="badge" id="mobileCartCount">0</span>
+</button>
 
 <div class="container-fluid">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -853,14 +917,25 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateCartUI() {
         const cartItems = document.getElementById('cartItems');
         const emptyCart = document.getElementById('emptyCart');
+        const mobileCheckoutBtn = document.getElementById('mobileCheckoutBtn');
+        const mobileCartCount = document.getElementById('mobileCartCount');
         
         if (cart.length === 0) {
             cartItems.innerHTML = '';
             emptyCart.style.display = 'table-row';
+            if (mobileCheckoutBtn) mobileCheckoutBtn.style.display = 'none';
             updateTotals();
             return;
         }
         
+        // Show button on mobile if items exist
+        if (mobileCheckoutBtn && window.innerWidth < 768) {
+            mobileCheckoutBtn.style.display = 'flex';
+            mobileCartCount.textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+        } else if (mobileCheckoutBtn) {
+            mobileCheckoutBtn.style.display = 'none';
+        }
+
         emptyCart.style.display = 'none';
         
         let html = '';
@@ -976,6 +1051,17 @@ document.addEventListener('DOMContentLoaded', function() {
         syncClearCart();
         document.getElementById('posForm').reset();
     });
+
+    // Mobile Checkout Scroll
+    const mobileCheckoutBtn = document.getElementById('mobileCheckoutBtn');
+    if (mobileCheckoutBtn) {
+        mobileCheckoutBtn.addEventListener('click', function() {
+            document.querySelector('.pos-right-col').scrollIntoView({ behavior: 'smooth' });
+            // Pulse effect
+            this.style.transform = 'scale(0.9)';
+            setTimeout(() => this.style.transform = 'scale(1)', 100);
+        });
+    }
 
     // Payment Method Change
     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {

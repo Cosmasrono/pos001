@@ -795,21 +795,23 @@
 
             <!-- Top Navbar -->
             <nav class="navbar-top">
-                <div class="container-fluid px-4 py-3">
+                <div class="container-fluid px-3 px-md-4 py-2 py-md-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center gap-2 gap-md-3">
                             <button class="mobile-toggle d-md-none" id="sidebarToggle">
                                 <i class="bi bi-list fs-4"></i>
                             </button>
-                            <h5 class="mb-0">@yield('page-title', 'Dashboard')</h5>
+                            <h5 class="mb-0 text-truncate" style="max-width: 150px; font-size: calc(0.9rem + 0.3vw);">
+                                @yield('page-title', 'Dashboard')
+                            </h5>
                         </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <div id="connectionStatus" class="badge bg-success">
-                                <i class="bi bi-wifi"></i> Online
+                        <div class="d-flex align-items-center gap-1 gap-md-3">
+                            <div id="connectionStatus" class="badge bg-success py-1 px-2">
+                                <i class="bi bi-wifi"></i> <span class="d-none d-md-inline">Online</span>
                             </div>
                             @yield('navbar-actions')
                             @if(auth()->check())
-                                <span class="badge bg-primary">{{ auth()->user()->name }}</span>
+                                <span class="badge bg-primary d-none d-lg-inline">{{ auth()->user()->name }}</span>
                             @endif
                         </div>
                     </div>
