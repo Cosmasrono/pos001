@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseOrder extends Model
 {
+    use \App\Traits\BelongsToCompany;
+
     protected $fillable = [
+        'company_id',
         'po_number',
         'supplier_id',
         'supplier_name',

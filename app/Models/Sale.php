@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Sale extends Model
 {
-    use \App\Traits\Auditable, \App\Traits\BranchScoped;
+    use \App\Traits\Auditable, \App\Traits\BranchScoped, \App\Traits\BelongsToCompany;
 
     protected $fillable = [
+        'company_id',
         'receipt_number',
         'cashier_id',
         'customer_id',

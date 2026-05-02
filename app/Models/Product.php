@@ -9,17 +9,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Product extends Model
 {
     use \App\Traits\Auditable;
+    use \App\Traits\BelongsToCompany;
 
     protected $table = 'products';
 
     protected $fillable = [
+        'company_id',
         'name',
         'description',
         'sku',
         'barcode',
         'cost_price',
         'selling_price',
-        'quantity_in_stock',   // ← added back - this is now the main stock field
+        'quantity_in_stock',
         'reorder_level',
         'category_id',
         'is_active',
@@ -112,7 +114,6 @@ class Product extends Model
 
     public function isLowStock(): bool
     {
-        // Simple global check
         $stock = $this->quantity_in_stock ?? 0;
         $threshold = $this->reorder_level ?? 0;
 

@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Promotion extends Model
 {
-    use \Illuminate\Database\Eloquent\Factories\HasFactory, \App\Traits\Auditable;
+    use \Illuminate\Database\Eloquent\Factories\HasFactory, \App\Traits\Auditable, \App\Traits\BelongsToCompany;
 
     protected $fillable = [
+        'company_id',
         'name',
         'code',
         'type',

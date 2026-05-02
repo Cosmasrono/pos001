@@ -25,16 +25,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // ─────────────────────────────────────────────────────────────────
-// PRODUCT ROUTES
+// PRODUCT ROUTES (Auth-protected)
 // ─────────────────────────────────────────────────────────────────
 
-Route::prefix('products')->group(function () {
-    Route::get('/', [ProductController::class, 'index']);
-    Route::get('/search/query', [ProductController::class, 'search']);
-    Route::get('/barcode/lookup', [ProductController::class, 'byBarcode']);
-    Route::get('/inventory/low-stock', [ProductController::class, 'lowStock']);
-    Route::get('/inventory/stock-value', [ProductController::class, 'stockValue']);
-    Route::get('/{product}', [ProductController::class, 'show']);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::prefix('products')->group(function () {
+        Route::get('/', [ProductController::class, 'index']);
+        Route::get('/search/query', [ProductController::class, 'search']);
+        Route::get('/barcode/lookup', [ProductController::class, 'byBarcode']);
+        Route::get('/inventory/low-stock', [ProductController::class, 'lowStock']);
+        Route::get('/inventory/stock-value', [ProductController::class, 'stockValue']);
+        Route::get('/{product}', [ProductController::class, 'show']);
+    });
 });
 
 Route::middleware(['auth:sanctum'])->group(function () {

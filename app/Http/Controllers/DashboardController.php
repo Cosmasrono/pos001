@@ -85,8 +85,24 @@ class DashboardController extends Controller
         }
 
         $isSystemActive = \App\Models\Setting::isSystemActive();
-        $subscriptionStatus = \App\Models\Setting::get('subscription_status', 'active');
-        $subscriptionExpiresAt = \App\Models\Setting::getSubscriptionExpiryDate();
+
+        // Read subscription info from the user's company (multi-tenant)
+        $company = $user->company;
+        $subscriptionStatus = $company?->subscription_status ?? 'expired';
+
+        if ($subscriptionStatus === 'trial') {
+            $subscriptionExpiresAt = $company?->trial_ends_at;
+        } else {
+            $subscriptionExpiresAt = $company?->subscription_expires_at;
+        }
+
+        $trialDaysRemaining = $company?->trialDaysRemaining();
+
+        // AI Daily Brief — generated once per company per day, cached in DB
+        $aiBrief = null;
+        if ($company && $user->isOwner()) {
+            $aiBrief = app(\App\Services\AiBriefService::class)->getOrGenerateToday($company);
+        }
 
         return view('dashboard.index', [
             'todaySales' => $todaySales,
@@ -100,6 +116,8 @@ class DashboardController extends Controller
             'isSystemActive' => $isSystemActive,
             'subscriptionStatus' => $subscriptionStatus,
             'subscriptionExpiresAt' => $subscriptionExpiresAt,
+            'trialDaysRemaining' => $trialDaysRemaining,
+            'aiBrief'            => $aiBrief,
         ]);
     }
 

@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Shift extends Model
 {
-    use \App\Traits\BranchScoped;
+    use \App\Traits\BranchScoped, \App\Traits\BelongsToCompany;
 
     protected $fillable = [
+        'company_id',
         'cashier_id',
         'branch_id',
         'opened_at',

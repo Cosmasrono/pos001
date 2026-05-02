@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExpenseCategory extends Model
 {
+    use \App\Traits\BelongsToCompany;
+
     protected $table = 'expense_categories';
 
     protected $fillable = [
+        'company_id',
         'name',
         'description',
     ];

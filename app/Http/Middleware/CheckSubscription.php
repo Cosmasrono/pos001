@@ -4,30 +4,44 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckSubscription
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Allow owners to always access the system (to fix subscription if needed)
-        if (auth()->check() && auth()->user()->isOwner()) {
+        $user = $request->user();
+
+        if (!$user) {
             return $next($request);
         }
 
-        // 2. Allow access to subscription expired page, login, and logout
-        $allowedRoutes = ['subscription.expired', 'login', 'logout'];
-        if (in_array($request->route()->getName(), $allowedRoutes)) {
+        if ($user->isPlatformAdmin()) {
             return $next($request);
         }
 
-        // 3. Check if subscription is active
-        if (!\App\Models\Setting::isSubscriptionActive()) {
+        $allowedRoutes = ['subscription.expired', 'login', 'logout', 'system.unavailable'];
+        if (in_array($request->route()?->getName(), $allowedRoutes, true)) {
+            return $next($request);
+        }
+
+        $company = $user->company;
+
+        if (!$company) {
+            return redirect()->route('subscription.expired');
+        }
+
+        // Auto-suspend if trial has expired but DB hasn't been updated yet
+        if ($company->subscription_status === 'trial'
+            && $company->trial_ends_at
+            && Carbon::now()->greaterThan($company->trial_ends_at)
+        ) {
+            $company->update(['subscription_status' => 'suspended']);
+            $company->subscription_status = 'suspended';
+        }
+
+        if (!$company->canAccessSystem()) {
             return redirect()->route('subscription.expired');
         }
 

@@ -714,66 +714,82 @@
                     </div>
                 @endif
 
-                <form action="{{ route('register') }}" method="POST">
-                    @csrf
+<form action="{{ route('register') }}" method="POST">
+    @csrf
 
-                    <div class="form-group">
-                        <label for="name" class="form-label">Full Name</label>
-                        <input type="text" id="name" name="name" class="form-control @error('name') is-invalid @enderror"
-                               placeholder="e.g. John Doe" value="{{ old('name') }}" required autofocus>
-                        @error('name')
-                            <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
-                        @enderror
-                    </div>
+    <div class="form-group">
+        <label for="shop_name" class="form-label">Shop / Business Name</label>
+        <input type="text" id="shop_name" name="shop_name" class="form-control @error('shop_name') is-invalid @enderror"
+               placeholder="e.g. Mama Mboga Stores" value="{{ old('shop_name') }}" required autofocus>
+        @error('shop_name')
+            <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
+        @enderror
+    </div>
 
-                    <div class="form-group">
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" id="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                               placeholder="john@example.com" value="{{ old('email') }}" required>
-                        @error('email')
-                            <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
-                        @enderror
-                    </div>
+    <div class="form-group">
+        <label for="name" class="form-label">Your Full Name</label>
+        <input type="text" id="name" name="name" class="form-control @error('name') is-invalid @enderror"
+               placeholder="e.g. John Doe" value="{{ old('name') }}" required>
+        @error('name')
+            <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
+        @enderror
+    </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror"
-                                       placeholder="••••••••" required>
-                                @error('password')
-                                    <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                       placeholder="you@example.com" value="{{ old('email') }}" required>
+                @error('email')
+                    <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="text" id="phone" name="phone" class="form-control @error('phone') is-invalid @enderror"
+                       placeholder="0712 345 678" value="{{ old('phone') }}">
+                @error('phone')
+                    <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
 
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="password_confirmation" class="form-label">Confirm Password</label>
-                                <input type="password" id="password_confirmation" name="password_confirmation" 
-                                       class="form-control @error('password_confirmation') is-invalid @enderror" 
-                                       placeholder="••••••••" required>
-                                @error('password_confirmation')
-                                    <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror"
+                       placeholder="••••••••" required>
+                @error('password')
+                    <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="password_confirmation" class="form-label">Confirm Password</label>
+                <input type="password" id="password_confirmation" name="password_confirmation"
+                       class="form-control @error('password_confirmation') is-invalid @enderror"
+                       placeholder="••••••••" required>
+                @error('password_confirmation')
+                    <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
 
-                    <div class="form-group">
-                        <label for="role" class="form-label">Account Role</label>
-                        <select id="role" name="role" class="form-control @error('role') is-invalid @enderror" required>
-                            <option value="super_admin" selected>Super Admin</option>
-                        </select>
-                        @error('role')
-                            <div class="invalid-feedback d-block" style="color: #ef5350; font-size: 12px; margin-top: 6px;">{{ $message }}</div>
-                        @enderror
-                    </div>
+    <p style="font-size: 13px; color: #666; margin: 12px 0;">
+        Free 7-day trial. No credit card needed.
+    </p>
 
-                    <button type="submit" class="btn btn-register">
-                        <i class="bi bi-person-plus-fill me-2"></i>Create Account
-                    </button>
-                </form>
+    <button type="submit" class="btn btn-register">
+        <i class="bi bi-person-plus-fill me-2"></i>Start Free Trial
+    </button>
+</form>
 
                 <div class="footer-text">
                     Already have an account? <a href="{{ route('login') }}" class="login-link">Sign in here</a>

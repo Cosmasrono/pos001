@@ -9,7 +9,10 @@ use Carbon\Carbon;
 
 class Loan extends Model
 {
+    use \App\Traits\BelongsToCompany;
+
     protected $fillable = [
+        'company_id',
         'customer_id',
         'user_id',
         'loan_number',

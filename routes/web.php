@@ -22,11 +22,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-
-  Route::resource('branches', App\Http\Controllers\BranchController::class);
-    Route::post('branches/{branch}/toggle-status', [App\Http\Controllers\BranchController::class, 'toggleStatus'])
-        ->name('branches.toggle-status');
-
 // Authentication Routes
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
@@ -50,6 +45,13 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::get('/superadmin/inventory', [App\Http\Controllers\DashboardController::class, 'superAdminInventory'])->name('superadmin.inventory');
+
+    // Branch Management (Owner / Super Admin / Manager only)
+    Route::resource('branches', App\Http\Controllers\BranchController::class)
+        ->middleware('role:owner,super_admin,manager');
+    Route::post('branches/{branch}/toggle-status', [App\Http\Controllers\BranchController::class, 'toggleStatus'])
+        ->middleware('role:owner,super_admin,manager')
+        ->name('branches.toggle-status');
 
     // Product and Inventory Management (Restricted for Cashiers)
     Route::resource('products', ProductController::class);
@@ -112,7 +114,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('ai/pricing', [\App\Http\Controllers\AIInventoryController::class, 'pricingDashboard'])->name('ai.pricing');
     Route::get('ai/bundles', [\App\Http\Controllers\AIInventoryController::class, 'bundleSuggestions'])->name('ai.bundles');
     Route::get('ai/waste-management', [\App\Http\Controllers\AIInventoryController::class, 'wasteManagement'])->name('ai.waste');
-    
+
     // AI API Endpoints
     Route::post('api/ai/execute-recommendation', [\App\Http\Controllers\AIInventoryController::class, 'executeRecommendation'])->name('ai.execute');
 
@@ -128,12 +130,20 @@ Route::middleware(['auth'])->group(function () {
     Route::post('system/toggle', [SystemControlController::class, 'toggle'])->name('system.toggle');
     Route::post('system/subscription', [SystemControlController::class, 'updateSubscription'])->name('system.subscription.update');
 
-    // Users
-    Route::resource('users', UserController::class);
+    // Users (Owner / Super Admin / Manager only)
+    Route::resource('users', UserController::class)
+        ->middleware('role:owner,super_admin,manager');
 
     // Logout
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::post('/password/change', [App\Http\Controllers\UserController::class, 'changePassword'])->name('password.change');
+
+    // Platform Owner Routes (admin emails only)
+    Route::middleware('platform')->prefix('platform')->name('platform.')->group(function () {
+        Route::get('/', [App\Http\Controllers\PlatformController::class, 'index'])->name('index');
+        Route::post('companies/{company}/activate', [App\Http\Controllers\PlatformController::class, 'activateCompany'])->name('companies.activate');
+        Route::post('companies/{company}/suspend', [App\Http\Controllers\PlatformController::class, 'suspendCompany'])->name('companies.suspend');
+    });
 });
 
 // System Unavailable Page (Public if deactivated)

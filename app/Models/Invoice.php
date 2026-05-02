@@ -9,9 +9,10 @@ use Carbon\Carbon;
 
 class Invoice extends Model
 {
-    use \App\Traits\Auditable;
+    use \App\Traits\Auditable, \App\Traits\BelongsToCompany;
 
     protected $fillable = [
+        'company_id',
         'invoice_number',
         'customer_id',
         'sale_id',

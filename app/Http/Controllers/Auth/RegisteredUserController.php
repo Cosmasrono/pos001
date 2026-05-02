@@ -3,69 +3,102 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\Company;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(): View
     {
-        $superAdminCount = User::whereHas('roles', function($q) {
-            $q->where('name', 'super_admin');
-        })->count();
-
-        return view('auth.register', [
-            'registrationDisabled' => $superAdminCount >= 2
-        ]);
+        return view('auth.register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
-        $superAdminCount = User::whereHas('roles', function($q) {
-            $q->where('name', 'super_admin');
-        })->count();
-
-        if ($superAdminCount >= 2) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Registration is currently disabled because the maximum number of Super Admin accounts has been reached.'
-            ]);
-        }
-
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'string', 'exists:roles,name'],
+            'shop_name' => ['required', 'string', 'max:255'],
+            'name'      => ['required', 'string', 'max:255'],
+            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'phone'     => ['nullable', 'string', 'max:20'],
+            'password'  => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        $user = DB::transaction(function () use ($request) {
+            $company = Company::create([
+                'name'                => $request->shop_name,
+                'slug'                => $this->generateUniqueSlug($request->shop_name),
+                'email'               => $request->email,
+                'phone'               => $request->phone,
+                'is_active'           => true,
+                'subscription_status' => 'trial',
+                'trial_ends_at'       => now()->addDays(7),
+                'currency'            => 'KES',
+                'timezone'            => 'Africa/Nairobi',
+                'country'             => 'KE',
+                'mpesa_environment'   => 'sandbox',
+            ]);
 
-        // Assign role
-        $role = \App\Models\Role::where('name', $request->role)->first();
-        if ($role) {
-            $user->roles()->attach($role->id);
-        }
+            $user = User::create([
+                'company_id' => $company->id,
+                'name'       => $request->name,
+                'email'      => $request->email,
+                'phone'      => $request->phone,
+                'password'   => Hash::make($request->password),
+                'is_active'  => true,
+            ]);
+
+            $company->update(['owner_id' => $user->id]);
+
+            $ownerRole = Role::where('name', 'owner')->first();
+            if ($ownerRole) {
+                $user->roles()->attach($ownerRole->id);
+            }
+
+            $branch = Branch::create([
+                'name'                          => 'Main Branch',
+                'code'                          => 'MAIN-' . strtoupper(Str::random(4)),
+                'address'                       => null,
+                'phone'                         => $request->phone,
+                'is_active'                     => true,
+                'is_main'                       => true,
+                'owner_id'                      => $user->id,
+                'stock_distribution_percentage' => 100.00,
+            ]);
+
+            $user->update(['branch_id' => $branch->id]);
+
+            return $user;
+        });
 
         event(new Registered($user));
 
-        return redirect()->route('login')->with('success', 'Registration successful! Please sign in with your new account.');
+        Auth::login($user);
+
+        return redirect()
+            ->route('dashboard')
+            ->with('success', "Welcome to WingPOS! Your 7-day free trial has started.");
+    }
+
+    private function generateUniqueSlug(string $name): string
+    {
+        $base = Str::slug($name) ?: 'shop';
+        $slug = $base;
+        $i = 1;
+        while (Company::where('slug', $slug)->exists()) {
+            $i++;
+            $slug = "{$base}-{$i}";
+        }
+        return $slug;
     }
 }

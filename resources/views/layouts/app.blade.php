@@ -758,6 +758,15 @@
                 </div>
                 @endif
 
+                @if(auth()->check() && auth()->user()->isPlatformAdmin())
+                <div class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('platform.*') ? 'active' : '' }}"
+                       href="{{ route('platform.index') }}">
+                        <i class="bi bi-shield-lock nav-icon"></i> Platform
+                    </a>
+                </div>
+                @endif
+
                 @endif
 
             </div>

@@ -5,7 +5,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Branch extends Model
 {
-    protected $fillable = ['name', 'code', 'address', 'phone', 'is_active', 'is_main', 'stock_distribution_percentage', 'owner_id'];
+    use \App\Traits\BelongsToCompany;
+
+    protected $fillable = ['company_id', 'name', 'code', 'address', 'phone', 'is_active', 'is_main', 'stock_distribution_percentage', 'owner_id'];
 
     protected $casts = [
         'stock_distribution_percentage' => 'decimal:2',

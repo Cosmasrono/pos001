@@ -29,6 +29,7 @@ class AuthenticatedSessionController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
+        
 
         $user = \App\Models\User::where('email', $credentials['email'])->first();
         $remember = $request->boolean('remember') || ($user && $user->isOwner());
@@ -52,6 +53,8 @@ class AuthenticatedSessionController extends Controller
 
             // Merge guest cart items into user's cart
             app(CartService::class)->mergeGuestCart($guestSessionId, Auth::id());
+
+            Auth::user()->forceFill(['last_login_at' => now()])->save();
 
             event(new Authenticated('web', Auth::user()));
             return redirect()->intended(route('dashboard', absolute: false));
