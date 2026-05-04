@@ -57,8 +57,7 @@
                     <tr>
                         <td><strong>{{ $product->sku }}</strong></td>
                         <td>{{ $product->name }}</td>
-                        <!-- <td>{{ $product->category->name }}</td> -->
-<td>{{ $product->category?->name ?? 'Uncategorized' }}</td>
+                        <td>{{ $product->category?->name ?? 'Uncategorized' }}</td>
                         {{-- Total Stock with low-stock warning --}}
                         <td>
                             @if ($totalStock <= $product->reorder_level)
