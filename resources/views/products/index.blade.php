@@ -67,31 +67,32 @@
                             @endif
                         </td>
 
-                        {{-- Per-branch breakdown --}}
-                        <td>
-                            @if ($product->branchStocks->isEmpty())
-                                <span class="text-muted small">—</span>
-                            @else
-                                <div class="d-flex flex-wrap gap-1">
-                                    @foreach ($product->branchStocks as $stock)
-                                        @php
-                                            $qty   = $stock->quantity_in_stock;
-                                            $low   = $qty <= $product->reorder_level;
-                                            $label = $stock->branch->name;
-                                            // Shorten label: use abbreviation if branch name is long
-                                            $short = mb_strlen($label) > 12
-                                                        ? mb_strtoupper(mb_substr($label, 0, 8)) . '…'
-                                                        : $label;
-                                        @endphp
-                                        <span class="badge {{ $low ? 'bg-danger' : 'bg-success' }} bg-opacity-85"
-                                              title="{{ $label }}: {{ $qty }} units{{ $low ? ' (Low Stock)' : '' }}"
-                                              style="font-size:.75rem; font-weight:500;">
-                                            {{ $short }}: {{ $qty }}
-                                        </span>
-                                    @endforeach
-                                </div>
-                            @endif
-                        </td>
+                     {{-- Per-branch breakdown --}}
+<td>
+    @if ($product->branchStocks->isEmpty())
+        <span class="text-muted small">—</span>
+    @else
+        <div class="d-flex flex-wrap gap-1">
+            @foreach ($product->branchStocks as $stock)
+                @php
+                    $qty   = $stock->quantity_in_stock;
+                    $low   = $qty <= $product->reorder_level;
+                    $label = $stock->branch?->name ?? 'Unknown Branch';
+                    // Shorten label: use abbreviation if branch name is long
+                    $short = mb_strlen($label) > 12
+                                ? mb_strtoupper(mb_substr($label, 0, 8)) . '…'
+                                : $label;
+                @endphp
+                <span class="badge {{ $low ? 'bg-danger' : 'bg-success' }} bg-opacity-85"
+                      title="{{ $label }}: {{ $qty }} units{{ $low ? ' (Low Stock)' : '' }}"
+                      style="font-size:.75rem; font-weight:500;">
+                    {{ $short }}: {{ $qty }}
+                </span>
+            @endforeach
+        </div>
+    @endif
+</td>
+ 
 
                         @if(!auth()->user()->isCashier())
                         <td>KES {{ number_format($product->cost_price, 2) }}</td>
