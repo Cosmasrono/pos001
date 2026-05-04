@@ -89,7 +89,7 @@ class AiBriefService
             ->where('sales.company_id', $companyId)
             ->whereDate('sales.created_at', $yesterday)
             ->where('sales.status', 'completed')
-            ->selectRaw('products.name, SUM(sale_items.subtotal) as revenue')
+            ->selectRaw('products.name, SUM(sale_items.line_total) as revenue')
             ->groupBy('products.name')
             ->orderByDesc('revenue')
             ->limit(3)
