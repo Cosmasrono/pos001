@@ -53,7 +53,12 @@
             </thead>
             <tbody>
                 @forelse ($products as $product)
-                    @php $totalStock = $product->branchStocks->sum('quantity_in_stock'); @endphp
+                    @php
+                        $hasBranches = $product->branchStocks->isNotEmpty();
+                        $totalStock  = $hasBranches
+                            ? $product->branchStocks->sum('quantity_in_stock')
+                            : $product->quantity_in_stock;
+                    @endphp
                     <tr>
                         <td><strong>{{ $product->sku }}</strong></td>
                         <td>{{ $product->name }}</td>
@@ -69,8 +74,16 @@
 
                      {{-- Per-branch breakdown --}}
 <td>
-    @if ($product->branchStocks->isEmpty())
-        <span class="text-muted small">—</span>
+    @if (!$hasBranches)
+        @php
+            $qty = $product->quantity_in_stock;
+            $low = $qty <= $product->reorder_level;
+        @endphp
+        <span class="badge {{ $low ? 'bg-danger' : 'bg-success' }} bg-opacity-85"
+              title="Main: {{ $qty }} units{{ $low ? ' (Low Stock)' : '' }}"
+              style="font-size:.75rem; font-weight:500;">
+            Main: {{ $qty }}
+        </span>
     @else
         <div class="d-flex flex-wrap gap-1">
             @foreach ($product->branchStocks as $stock)
@@ -78,7 +91,6 @@
                     $qty   = $stock->quantity_in_stock;
                     $low   = $qty <= $product->reorder_level;
                     $label = $stock->branch?->name ?? 'Unknown Branch';
-                    // Shorten label: use abbreviation if branch name is long
                     $short = mb_strlen($label) > 12
                                 ? mb_strtoupper(mb_substr($label, 0, 8)) . '…'
                                 : $label;
@@ -92,7 +104,6 @@
         </div>
     @endif
 </td>
- 
 
                         @if(!auth()->user()->isCashier())
                         <td>KES {{ number_format($product->cost_price, 2) }}</td>

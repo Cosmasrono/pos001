@@ -34,6 +34,8 @@ class ProductController extends Controller
         }
         // 'all' shows both active and inactive
 
+        $query->latest();
+
         $products = $query->paginate(15)->appends(['filter' => $filter]);
 
         return view('products.index', [
