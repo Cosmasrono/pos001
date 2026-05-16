@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\CheckSystemStatus::class,
             \App\Http\Middleware\CheckSubscription::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'mpesa/callback',
+        ]);
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
                 'platform' => \App\Http\Middleware\EnsurePlatformAdmin::class,

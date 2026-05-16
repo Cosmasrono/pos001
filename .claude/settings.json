@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Select-String -NotMatch \"Warning|Module\")",
+      "PowerShell(php artisan tinker --execute=\"use App\\\\Models\\\\Branch; `$b = Branch::withoutGlobalScopes\\(\\)->find\\(7\\); echo `$b ? json_encode\\(['id'=>`$b->id,'name'=>`$b->name,'company_id'=>`$b->company_id,'is_active'=>`$b->is_active]\\) : 'Branch 7 does not exist';\" 2>&1 | Where-Object { $_ -notmatch \"Warning|Module\" })"
+    ]
+  }
+}

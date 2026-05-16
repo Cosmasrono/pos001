@@ -60,10 +60,11 @@ class RegisteredUserController extends Controller
 
             $company->update(['owner_id' => $user->id]);
 
-            $ownerRole = Role::where('name', 'owner')->first();
-            if ($ownerRole) {
-                $user->roles()->attach($ownerRole->id);
-            }
+            $ownerRole = Role::firstOrCreate(
+                ['name' => 'owner'],
+                ['display_name' => 'System Owner', 'description' => 'Ultimate system authority and control']
+            );
+            $user->roles()->attach($ownerRole->id);
 
             $branch = Branch::create([
                 'name'                          => 'Main Branch',
@@ -83,11 +84,9 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
-
         return redirect()
-            ->route('dashboard')
-            ->with('success', "Welcome to WingPOS! Your 7-day free trial has started.");
+            ->route('verification.notice.guest')
+            ->with('success', "Registration successful! Please check your email to verify your account. Your 7-day free trial will begin after email verification.");
     }
 
     private function generateUniqueSlug(string $name): string

@@ -72,7 +72,7 @@ class BranchController extends Controller
     public function show(Branch $branch): View
     {
         $this->authorizeCompany($branch);
-        $branch->load('productBranchStocks');
+        $branch->load('productStocks');
         return view('branches.show', compact('branch'));
     }
 

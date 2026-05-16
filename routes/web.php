@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SupplierController;
@@ -145,6 +146,52 @@ Route::middleware(['auth'])->group(function () {
         Route::post('companies/{company}/suspend', [App\Http\Controllers\PlatformController::class, 'suspendCompany'])->name('companies.suspend');
     });
 });
+
+
+// Email Verification Routes
+Route::get('/email/verify/{id}/{hash}', function (\Illuminate\Http\Request $request, $id, $hash) {
+    $user = \App\Models\User::findOrFail($id);
+
+    if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+        abort(403, 'Invalid verification link.');
+    }
+
+    if (!$user->hasVerifiedEmail()) {
+        $user->markEmailAsVerified();
+    }
+
+    Auth::login($user);
+
+    return redirect()->route('dashboard')->with('success', 'Email verified successfully! Welcome to WingPOS');
+})->middleware('signed')->name('verification.verify');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', function () {
+        return view('auth.verify-email');
+    })->name('verification.notice');
+
+    Route::post('/email/verification-notification', function (\Illuminate\Http\Request $request) {
+        $request->user()->sendEmailVerificationNotification();
+        return back()->with('success', 'Verification link sent!');
+    })->middleware('throttle:6,1')->name('verification.send');
+});
+
+// Allow unauthenticated users to see verification notice after registration
+Route::get('/verify-email-notice', function () {
+    return view('auth.verify-email-notice');
+})->name('verification.notice.guest');
+
+// Subscription (auth required — also allowed when subscription is expired)
+Route::middleware('auth')->prefix('subscribe')->name('subscribe.')->group(function () {
+    Route::get('/',           [App\Http\Controllers\SubscriptionController::class, 'plans'])->name('plans');
+    Route::post('/initiate',  [App\Http\Controllers\SubscriptionController::class, 'initiate'])->name('initiate');
+    Route::get('/pending/{payment}', [App\Http\Controllers\SubscriptionController::class, 'pending'])->name('pending');
+    Route::get('/status/{payment}',  [App\Http\Controllers\SubscriptionController::class, 'checkStatus'])->name('status');
+});
+
+// M-Pesa callback — no auth, no CSRF (Safaricom calls this directly)
+Route::post('/mpesa/callback', [App\Http\Controllers\SubscriptionController::class, 'callback'])
+    ->name('mpesa.callback');
 
 // System Unavailable Page (Public if deactivated)
 Route::get('system/unavailable', function () {

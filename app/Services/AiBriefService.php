@@ -180,10 +180,15 @@ PROMPT;
             . "\n\nWrite the daily brief now.";
 
         try {
-            $response = Http::withHeaders([
+            // On Windows, max_execution_time counts wall-clock time including
+            // network I/O. Reset the limit here so the HTTP call doesn't race
+            // against the global 30-second PHP timeout.
+            set_time_limit(60);
+
+            $response = Http::withoutVerifying()->withHeaders([
                 'Authorization' => "Bearer {$apiKey}",
                 'Content-Type'  => 'application/json',
-            ])->timeout(30)->post('https://api.groq.com/openai/v1/chat/completions', [
+            ])->timeout(20)->post('https://api.groq.com/openai/v1/chat/completions', [
                 'model'       => 'llama-3.3-70b-versatile',
                 'messages'    => [
                     ['role' => 'system', 'content' => $systemPrompt],

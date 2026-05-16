@@ -5,8 +5,11 @@
 
 @section('content')
 @php
-    $isMain = !auth()->user()->branch_id; // SuperAdmin/Main account
     $userBranch = auth()->user()->branch;
+    // Multi-branch allocator: SuperAdmin (no branch_id), Owner role, or platform admin.
+    // Falls back to the controller-passed flag, but stays safe if rendered directly.
+    $isMain = $canAllocateAcrossBranches ?? (!auth()->user()->branch_id);
+    $hasBranches = $branches->isNotEmpty();
 @endphp
 
 <div class="container-fluid px-4 py-4">
@@ -211,10 +214,11 @@
                                                 </div>
                                             </div>
                                         @empty
-                                            <div class="text-center py-4">
-                                                <i class="bi bi-building-exclamation fs-1 text-muted opacity-25"></i>
-                                                <p class="text-muted small mt-2">No branches available.</p>
-                                                <a href="{{ route('branches.create') }}" class="btn btn-sm btn-outline-primary">Add Branch</a>
+                                            <div class="text-center py-4 px-3 bg-info-light rounded-3 border border-info">
+                                                <i class="bi bi-magic fs-1 text-info"></i>
+                                                <h6 class="fw-bold text-info mt-2 mb-1">No Branches Yet</h6>
+                                                <p class="text-muted small mb-2">No worries — when you save this product, a <strong>Main Branch</strong> will be created automatically and your stock will be allocated to it.</p>
+                                                <small class="text-muted">You can add more branches later from the Branches section.</small>
                                             </div>
                                         @endforelse
                                     </div>
@@ -292,59 +296,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalStockInput = document.getElementById('total_stock');
     const mainBranchQty   = document.querySelector('.main-branch-qty');
     const otherBranchQtys = document.querySelectorAll('.other-branch-qty');
+    const allBranchQtys   = document.querySelectorAll('.branch-qty');
     const errorAlert      = document.getElementById('allocation-error');
 
-    function updateAllocations() {
-        if (!totalStockInput || !mainBranchQty) return;
+    function updateFromTotal() {
+        if (!totalStockInput) return;
+        const total = parseInt(totalStockInput.value || 0, 10);
+        let allocated = 0;
+        otherBranchQtys.forEach(inp => { allocated += parseInt(inp.value || 0, 10); });
 
-        const total      = parseInt(totalStockInput.value || 0, 10);
-        let allocated   = 0;
-        
-        otherBranchQtys.forEach(inp => {
-            allocated += parseInt(inp.value || 0, 10);
-        });
+        // No main branch flagged — just validate allocations don't exceed total.
+        if (!mainBranchQty) {
+            if (allocated > total) {
+                errorAlert?.classList.remove('d-none');
+            } else {
+                errorAlert?.classList.add('d-none');
+            }
+            return;
+        }
 
         const mainShare = total - allocated;
-
         if (mainShare < 0) {
             mainBranchQty.value = 0;
-            mainBranchQty.closest('.main-branch-card').classList.add('border-danger', 'animate-shake');
+            mainBranchQty.closest('.main-branch-card').classList.add('border-danger');
             errorAlert.classList.remove('d-none');
-            // Reset shake after animation
-            setTimeout(() => mainBranchQty.closest('.main-branch-card').classList.remove('animate-shake'), 500);
         } else {
             mainBranchQty.value = mainShare;
             mainBranchQty.closest('.main-branch-card').classList.remove('border-danger');
             errorAlert.classList.add('d-none');
         }
-        
-        // Highlight active other branches
-        otherBranchQtys.forEach(inp => {
-            const parent = inp.closest('.other-branch-card');
-            if (parseInt(inp.value) > 0) {
-                parent.classList.add('bg-primary-light', 'border-primary');
-                parent.classList.remove('bg-light');
-            } else {
-                parent.classList.remove('bg-primary-light', 'border-primary');
-                parent.classList.add('bg-light');
-            }
-        });
     }
 
     if (totalStockInput) {
-        // Listen for all possible changes
-        ['input', 'change', 'keyup', 'click'].forEach(evt => {
-            totalStockInput.addEventListener(evt, updateAllocations);
-        });
-        
-        otherBranchQtys.forEach(inp => {
-            ['input', 'change', 'keyup'].forEach(evt => {
-                inp.addEventListener(evt, updateAllocations);
-            });
-        });
-        
-        // Final check on load
-        setTimeout(updateAllocations, 100);
+        totalStockInput.addEventListener('input', updateFromTotal);
+        otherBranchQtys.forEach(inp => { inp.addEventListener('input', updateFromTotal); });
+        updateFromTotal();
     }
 });
 </script>

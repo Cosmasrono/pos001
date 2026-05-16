@@ -263,6 +263,48 @@ class MpesaService
     }
 
     /**
+     * Initiate STK Push for subscription payments (takes raw parameters)
+     */
+    public function initiateSubscriptionPush(string $phone, int $amount, string $accountRef, string $description): array
+    {
+        $token     = $this->getAccessToken();
+        $timestamp = date('YmdHis');
+        $password  = base64_encode($this->shortCode . $this->passkey . $timestamp);
+        $phone     = $this->formatPhoneNumber($phone);
+
+        $request = Http::withToken($token)->timeout(config('mpesa.timeout', 60));
+        if (!$this->verifySsl) {
+            $request = $request->withoutVerifying();
+        }
+
+        $response = $request->post("{$this->baseUrl}/mpesa/stkpush/v1/processrequest", [
+            'BusinessShortCode' => $this->shortCode,
+            'Password'          => $password,
+            'Timestamp'         => $timestamp,
+            'TransactionType'   => 'CustomerPayBillOnline',
+            'Amount'            => $amount,
+            'PartyA'            => $phone,
+            'PartyB'            => $this->shortCode,
+            'PhoneNumber'       => $phone,
+            'CallBackURL'       => config('mpesa.callback_url'),
+            'AccountReference'  => $accountRef,
+            'TransactionDesc'   => $description,
+        ]);
+
+        \Log::info('M-Pesa Subscription STK Push', ['response' => $response->json()]);
+
+        return $response->json() ?? [];
+    }
+
+    /**
+     * Query STK Push status for subscription payment
+     */
+    public function querySubscriptionStatus(string $checkoutRequestId): array
+    {
+        return $this->queryTransactionStatus($checkoutRequestId);
+    }
+
+    /**
      * Get user-friendly error message
      */
     protected function getErrorMessage(int $resultCode): string

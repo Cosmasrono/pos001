@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'token'           => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'notify_number'   => env('WHATSAPP_NOTIFY_NUMBER', '254757450716'),
+    ],
+
     'mpesa' => [
         'base_url' => env('MPESA_BASE_URL', 'https://sandbox.safaricom.co.ke'),
         'consumer_key' => env('MPESA_CONSUMER_KEY'),

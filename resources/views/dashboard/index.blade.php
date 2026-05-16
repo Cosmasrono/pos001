@@ -353,6 +353,15 @@
 
 {{-- ── SUBSCRIPTION BANNER ── --}}
 @if(auth()->user()->isOwner())
+@php
+    $waMsg = "Hello! I would like to subscribe to WingPOS.\n\n"
+           . "Company: " . (auth()->user()->company->name ?? '—') . "\n"
+           . "Owner: " . auth()->user()->name . "\n"
+           . "Email: " . auth()->user()->email . "\n"
+           . "Current Status: {$subscriptionStatus}\n\n"
+           . "Please assist me with subscription. Thank you.";
+    $waLink = 'https://wa.me/254757450716?text=' . rawurlencode($waMsg);
+@endphp
 <div class="mb-3">
     @if($subscriptionStatus === 'trial')
         <div class="sub-banner" style="background:rgba(245,158,11,0.07);border-color:rgba(245,158,11,0.25);color:#b45309;">
@@ -368,8 +377,8 @@
                     @endif
                 </span>
             </div>
-            <a href="#" class="d-flex align-items-center gap-1 fw-bold text-decoration-none" style="color:inherit;">
-                Subscribe Now <i class="bi bi-arrow-right"></i>
+            <a href="{{ $waLink }}" target="_blank" class="d-flex align-items-center gap-1 fw-bold text-decoration-none" style="color:inherit;">
+                <i class="bi bi-whatsapp"></i> Subscribe Now
             </a>
         </div>
     @elseif($subscriptionStatus === 'active')
@@ -396,8 +405,8 @@
                     @endif
                 </span>
             </div>
-            <a href="#" class="d-flex align-items-center gap-1 fw-bold text-decoration-none" style="color:inherit;">
-                Subscribe Now <i class="bi bi-arrow-right"></i>
+            <a href="{{ $waLink }}" target="_blank" class="d-flex align-items-center gap-1 fw-bold text-decoration-none" style="color:inherit;">
+                <i class="bi bi-whatsapp"></i> Subscribe Now
             </a>
         </div>
     @endif

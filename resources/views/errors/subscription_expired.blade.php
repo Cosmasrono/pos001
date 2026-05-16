@@ -27,8 +27,14 @@
             <i class="bi bi-clock-history"></i>
         </div>
         <h1>Subscription Expired</h1>
-        <p>Your annual system subscription has expired. Please contact the system administrator or the service provider to renew your license and regain access.</p>
-        <div class="mt-4">
+        <p>Your subscription has expired. Click below to contact us on WhatsApp and we will renew your access.</p>
+        <div class="mt-4 d-flex flex-column flex-md-row gap-2 justify-content-center">
+            <a href="https://wa.me/254757450716?text={{ rawurlencode("Hello! My WingPOS subscription has expired and I would like to renew. Please assist. Thank you.") }}"
+               target="_blank"
+               class="btn btn-success"
+               style="border-radius:50px;padding:12px 30px;font-weight:600;border:none;">
+                <i class="bi bi-whatsapp me-2"></i>Subscribe via WhatsApp
+            </a>
             <a href="{{ route('login') }}" class="btn btn-primary">Administrator Login</a>
         </div>
         <div class="mt-3">

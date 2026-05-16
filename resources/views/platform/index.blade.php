@@ -225,15 +225,16 @@
                         <td><small>{{ $c['created_at']->format('d M Y') }}</small></td>
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
-                                {{-- Activate button: shown when suspended, expired, or trial --}}
+                                {{-- Activate for 1 year --}}
                                 @if(in_array($c['subscription_status'], ['suspended', 'expired', 'trial']))
-                                    <button class="btn btn-sm btn-success btn-action"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#activateModal"
-                                        data-company-id="{{ $c['id'] }}"
-                                        data-company-name="{{ $c['name'] }}">
-                                        Activate
-                                    </button>
+                                    <form method="POST"
+                                          action="{{ route('platform.companies.activate', $c['id']) }}"
+                                          onsubmit="return confirm('Activate {{ addslashes($c['name']) }} for 1 year?')">
+                                        @csrf
+                                        <button class="btn btn-sm btn-success btn-action">
+                                            <i class="bi bi-check-circle"></i> Activate
+                                        </button>
+                                    </form>
                                 @endif
                                 {{-- Suspend button: shown when active or trial --}}
                                 @if(in_array($c['subscription_status'], ['active', 'trial']))
@@ -255,45 +256,5 @@
     </div>
 </div>
 
-{{-- Activate Modal --}}
-<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title fw-bold" id="activateModalLabel">Activate Company</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="activateForm" method="POST" action="">
-                @csrf
-                <div class="modal-body">
-                    <p class="mb-3 text-muted" style="font-size:.85rem;">
-                        Activating <strong id="activateCompanyName"></strong>. Set the subscription expiry date.
-                    </p>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:.82rem;">Expires On</label>
-                        <input type="date" name="expires_at" class="form-control form-control-sm"
-                            min="{{ now()->addDay()->format('Y-m-d') }}"
-                            value="{{ now()->addMonths(1)->format('Y-m-d') }}" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-sm btn-success">Activate</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-@push('scripts')
-<script>
-document.getElementById('activateModal').addEventListener('show.bs.modal', function (e) {
-    const btn = e.relatedTarget;
-    document.getElementById('activateCompanyName').textContent = btn.dataset.companyName;
-    document.getElementById('activateForm').action =
-        '/platform/companies/' + btn.dataset.companyId + '/activate';
-});
-</script>
-@endpush
 
 @endsection

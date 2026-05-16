@@ -21,8 +21,9 @@ class CheckSubscription
             return $next($request);
         }
 
-        $allowedRoutes = ['subscription.expired', 'login', 'logout', 'system.unavailable'];
-        if (in_array($request->route()?->getName(), $allowedRoutes, true)) {
+        $allowedRoutes = ['subscription.expired', 'login', 'logout', 'system.unavailable', 'mpesa.callback'];
+        $routeName = $request->route()?->getName() ?? '';
+        if (in_array($routeName, $allowedRoutes, true) || str_starts_with($routeName, 'subscribe.')) {
             return $next($request);
         }
 

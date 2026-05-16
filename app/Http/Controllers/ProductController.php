@@ -15,12 +15,13 @@ class ProductController extends Controller
     {
         $user = auth()->user();
         $filter = $request->get('filter', 'active'); // all, active, inactive
+        $canSeeAllBranches = !$user->branch_id || $user->isOwner() || $user->isPlatformAdmin();
         
         // Build base query - always load all products with their branch stocks
         $query = Product::with('category', 'branchStocks.branch');
         
-        // If user is a branch user (not admin/main), filter to show only their branch stocks
-        if ($user && $user->branch_id) {
+        // If user is restricted to a single branch, filter to show only their branch stocks
+        if ($user && $user->branch_id && !$canSeeAllBranches) {
             $query->with(['branchStocks' => function($q) use ($user) {
                 $q->where('branch_id', $user->branch_id);
             }]);
@@ -44,13 +45,24 @@ class ProductController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create()
     {
-        $branches = Branch::orderByDesc('is_main')->get();  
+        $user = auth()->user();
+        $canAllocateAcrossBranches = !$user->branch_id || $user->isOwner() || $user->isPlatformAdmin();
+
+        // No more blocking. If branches don't exist or the user's branch is gone,
+        // store() will auto-create a Main Branch when the form is submitted.
+        $branches = Branch::where('is_active', true)
+            ->orderByDesc('is_main')
+            ->orderBy('name')
+            ->get();
+
         $categories = Category::orderBy('name')->get();
+
         return view('products.create', [
-            'branches' => $branches,
-            'categories' => $categories
+            'branches'   => $branches,
+            'categories' => $categories,
+            'canAllocateAcrossBranches' => $canAllocateAcrossBranches,
         ]);
     }
 
@@ -79,40 +91,63 @@ public function store(Request $request): RedirectResponse
     }
 
     $user = auth()->user();
-    $totalStock = (int) ($request->input('total_stock', 0));
-    $branchQuantities = collect($request->input('branch_quantities', []))
-        ->map(fn($q) => max(0, (int) $q));
+    $canAllocateAcrossBranches = !$user->branch_id || $user->isOwner() || $user->isPlatformAdmin();
 
-    if (!$user->branch_id) {
-        // SuperAdmin: Enforce total_stock and handle Main Branch remainder
-        $mainBranch = Branch::where('is_main', true)->first() ?? Branch::first();
-        
-        if ($mainBranch) {
-            $otherAllocations = $branchQuantities->except($mainBranch->id)->sum();
-            // Main Branch gets the remaining stock from total_stock
-            $branchQuantities[$mainBranch->id] = max(0, $totalStock - $otherAllocations);
+    // Get all branch quantities from request and force integer keys/values
+    $rawBranchQtys = $request->input('branch_quantities', []);
+    $branchQuantities = collect($rawBranchQtys)->mapWithKeys(function ($qty, $id) {
+        return [(int) $id => max(0, (int) $qty)];
+    });
+
+    $inputTotalStock = $request->input('total_stock');
+
+    if ($canAllocateAcrossBranches) {
+        // Multi-branch allocator (SuperAdmin / Owner): handle total_stock and Main Branch remainder.
+        // If no branches exist at all OR none flagged as main, auto-create one so we never block the user.
+        $mainBranch = Branch::where('is_active', true)->where('is_main', true)->first()
+                      ?? Branch::where('is_active', true)->where('name', 'LIKE', '%Main%')->first()
+                      ?? Branch::where('is_active', true)->first()
+                      ?? $this->ensureDefaultBranch($user);
+
+        // If total_stock is missing or 0, calculate it from the sum of branch quantities
+        if (empty($inputTotalStock) || (int)$inputTotalStock === 0) {
+            $totalStock = $branchQuantities->sum();
+        } else {
+            $totalStock = (int) $inputTotalStock;
         }
-        
+
+        $mainBranchId = $mainBranch->id;
+        if (!$branchQuantities->has($mainBranchId)) {
+            $branchQuantities->put($mainBranchId, 0);
+        }
+        $otherAllocations = $branchQuantities->except($mainBranchId)->sum();
+        $branchQuantities[$mainBranchId] = max(0, $totalStock - $otherAllocations);
+
         $validated['quantity_in_stock'] = $totalStock;
     } else {
-        // Branch user: only their branch is relevant
-        $qty = $branchQuantities->get($user->branch_id, 0);
-        $totalStock = $qty;
-        $validated['quantity_in_stock'] = $qty;
-        $branchQuantities = collect([$user->branch_id => $qty]);
+        // Single-branch user: try their assigned branch; if missing/inactive, auto-create one.
+        $userBranch = Branch::find($user->branch_id);
+        if (!$userBranch || !$userBranch->is_active) {
+            $userBranch = $this->ensureDefaultBranch($user);
+            // Re-attach the user to the auto-created branch so future actions don't fall back again.
+            $user->forceFill(['branch_id' => $userBranch->id])->save();
+        }
+
+        $qty = $branchQuantities->get($user->branch_id, $branchQuantities->first() ?? 0);
+        $totalStock = (int) $qty;
+        $validated['quantity_in_stock'] = $totalStock;
+        $branchQuantities = collect([(int)$userBranch->id => $totalStock]);
     }
 
     $product = Product::create($validated);
 
     // Record stock for each branch
     foreach ($branchQuantities as $branchId => $qty) {
-        if ($qty > 0) {
-            ProductBranchStock::create([
-                'product_id'         => $product->id,
-                'branch_id'          => (int) $branchId,
-                'quantity_in_stock'  => $qty,
-                'initial_allocation' => $qty,
-            ]);
+        if ($qty >= 0) {
+            ProductBranchStock::updateOrCreate(
+                ['product_id' => $product->id, 'branch_id' => $branchId],
+                ['quantity_in_stock' => $qty, 'initial_allocation' => $qty]
+            );
         }
     }
 
@@ -120,9 +155,35 @@ public function store(Request $request): RedirectResponse
         ->with('success', 'Product created successfully with ' . number_format($totalStock) . ' total units allocated.');
 }
 
+/**
+ * Make sure at least one active branch exists. If none does, create a "Main Branch"
+ * for the current user's company so product creation never gets blocked.
+ */
+protected function ensureDefaultBranch($user): Branch
+{
+    $branch = Branch::where('is_active', true)->first();
+    if ($branch) {
+        return $branch;
+    }
 
-    public function show(Product $product): View
+    return Branch::create([
+        'name'       => 'Main Branch',
+        'code'       => 'MAIN',
+        'is_main'    => true,
+        'is_active'  => true,
+        'company_id' => $user->company_id ?? null, // BelongsToCompany trait will fill if scoped
+        'owner_id'   => $user->id,
+    ]);
+}
+
+
+    public function show($idOrSku): View
     {
+        $product = Product::where('id', $idOrSku)
+            ->orWhere('sku', $idOrSku)
+            ->orWhere('barcode', $idOrSku)
+            ->firstOrFail();
+
         $product->load('category', 'branchStocks.branch', 'stockMovements');
         return view('products.show', ['product' => $product]);
     }
@@ -160,10 +221,11 @@ public function store(Request $request): RedirectResponse
         $product->update($validated);
 
         $user = auth()->user();
+        $canAllocateAcrossBranches = !$user->branch_id || $user->isOwner() || $user->isPlatformAdmin();
         $totalStock = $validated['total_initial_stock'];
 
-        // If user is SuperAdmin (main account), redistribute to all branches
-        if (!$user->branch_id) {
+        // If user can allocate across branches, redistribute to all branches
+        if ($canAllocateAcrossBranches) {
             $product->branchStocks()->delete();
             
             $branches = Branch::where('is_active', true)->get();

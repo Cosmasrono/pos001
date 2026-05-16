@@ -64,19 +64,17 @@ class PlatformController extends Controller
         ));
     }
 
-    public function activateCompany(Company $company, Request $request): RedirectResponse
+    public function activateCompany(Company $company): RedirectResponse
     {
-        $request->validate([
-            'expires_at' => 'required|date|after:today',
-        ]);
+        $expiresAt = Carbon::now()->addYear()->endOfDay();
 
         $company->update([
             'subscription_status'    => 'active',
             'is_active'              => true,
-            'subscription_expires_at'=> Carbon::parse($request->expires_at)->endOfDay(),
+            'subscription_expires_at'=> $expiresAt,
         ]);
 
-        return back()->with('success', "{$company->name} activated until " . Carbon::parse($request->expires_at)->format('d M Y') . '.');
+        return back()->with('success', "{$company->name} activated for 1 year until " . $expiresAt->format('d M Y') . '.');
     }
 
     public function suspendCompany(Company $company): RedirectResponse
