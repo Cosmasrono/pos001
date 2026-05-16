@@ -36,20 +36,24 @@ class RegisteredUserController extends Controller
 
         // If email exists but was never verified, wipe it so they can start fresh
         $existing = User::where('email', $request->email)->first();
-        if ($existing) {
-            if ($existing->email_verified_at !== null) {
-                return back()->withInput()->withErrors([
-                    'email' => 'This email is already registered and verified. Please log in instead.',
-                ]);
+       if ($existing) {
+    if ($existing->email_verified_at !== null) {
+        return back()->withInput()->withErrors([
+            'email' => 'This email is already registered and verified. Please log in instead.',
+        ]);
+    }
+    
+    DB::transaction(function () use ($existing) {
+        $company = $existing->company;   // grab reference before deleting user
+        $existing->delete();              // delete user FIRST
+        if ($company) {
+            // make sure no other users reference this company
+            if ($company->users()->count() === 0) {
+                $company->delete();
             }
-            // Unverified — delete user and their company so registration can proceed cleanly
-            DB::transaction(function () use ($existing) {
-                if ($existing->company) {
-                    $existing->company->delete();
-                }
-                $existing->delete();
-            });
         }
+    });
+}
 
         $user = DB::transaction(function () use ($request) {
             $company = Company::create([
