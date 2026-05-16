@@ -54,16 +54,16 @@ class CartController extends Controller
             'identifier' => $identifier
         ]);
 
-        return response()->json($items->map(function ($item) {
+        return response()->json($items->filter(fn($i) => $i->product !== null)->map(function ($item) {
             return [
-                'id' => $item->product_id,
+                'id'           => $item->product_id,
                 'cart_item_id' => $item->id,
-                'name' => $item->product->name,
-                'price' => (float)$item->product->selling_price,
-                'quantity' => $item->quantity,
-                'stock' => $item->product->quantity_in_stock,
+                'name'         => $item->product->name,
+                'price'        => (float) $item->product->selling_price,
+                'quantity'     => $item->quantity,
+                'stock'        => $item->product->quantity_in_stock,
             ];
-        }));
+        })->values());
     }
 
     /**
