@@ -29,10 +29,27 @@ class RegisteredUserController extends Controller
         $request->validate([
             'shop_name' => ['required', 'string', 'max:255'],
             'name'      => ['required', 'string', 'max:255'],
-            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255'],
             'phone'     => ['nullable', 'string', 'max:20'],
             'password'  => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
+
+        // If email exists but was never verified, wipe it so they can start fresh
+        $existing = User::where('email', $request->email)->first();
+        if ($existing) {
+            if ($existing->email_verified_at !== null) {
+                return back()->withInput()->withErrors([
+                    'email' => 'This email is already registered and verified. Please log in instead.',
+                ]);
+            }
+            // Unverified — delete user and their company so registration can proceed cleanly
+            DB::transaction(function () use ($existing) {
+                if ($existing->company) {
+                    $existing->company->delete();
+                }
+                $existing->delete();
+            });
+        }
 
         $user = DB::transaction(function () use ($request) {
             $company = Company::create([
