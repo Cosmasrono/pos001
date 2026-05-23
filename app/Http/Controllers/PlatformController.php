@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -55,12 +56,24 @@ class PlatformController extends Controller
             ->limit(10)
             ->get();
 
+        $recentLogins = User::whereNotNull('last_login_at')
+            ->orderByDesc('last_login_at')
+            ->limit(20)
+            ->get(['id', 'name', 'email', 'last_login_at', 'last_login_ip', 'last_login_country', 'company_id'])
+            ->map(fn ($u) => [
+                'name'         => $u->name,
+                'email'        => $u->email,
+                'last_login_at'=> $u->last_login_at,
+                'ip'           => $u->last_login_ip ?? '—',
+                'country'      => $u->last_login_country ?? '—',
+            ]);
+
         return view('platform.index', compact(
             'usersActive24h', 'usersActive7d', 'usersActive30d',
             'usersAccountActive', 'usersTotal',
             'companiesTotal', 'companiesOnTrial', 'companiesActive',
             'companiesExpired', 'companiesInactive',
-            'companies', 'recentSignups'
+            'companies', 'recentSignups', 'recentLogins'
         ));
     }
 

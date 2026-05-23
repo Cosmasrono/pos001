@@ -160,9 +160,7 @@ Route::get('/email/verify/{id}/{hash}', function (\Illuminate\Http\Request $requ
         $user->markEmailAsVerified();
     }
 
-    Auth::login($user);
-
-    return redirect()->route('dashboard')->with('success', 'Email verified successfully! Welcome to WingPOS');
+    return redirect()->route('login')->with('success', 'Email verified successfully! You can now log in to WingPOS.');
 })->middleware('signed')->name('verification.verify');
 
 Route::middleware('auth')->group(function () {

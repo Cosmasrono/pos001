@@ -8,6 +8,8 @@ use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -54,7 +56,22 @@ class AuthenticatedSessionController extends Controller
             // Merge guest cart items into user's cart
             app(CartService::class)->mergeGuestCart($guestSessionId, Auth::id());
 
-            Auth::user()->forceFill(['last_login_at' => now()])->save();
+            $ip = $request->ip();
+            $country = Cache::remember("ip_country_{$ip}", 86400, function () use ($ip) {
+                try {
+                    $geo = Http::timeout(2)->get("http://ip-api.com/json/{$ip}?fields=status,country,countryCode")->json();
+                    if (($geo['status'] ?? '') === 'success') {
+                        return ($geo['countryCode'] ?? '') . ' ' . ($geo['country'] ?? '');
+                    }
+                } catch (\Throwable) {}
+                return null;
+            });
+
+            Auth::user()->forceFill([
+                'last_login_at'      => now(),
+                'last_login_ip'      => $ip,
+                'last_login_country' => $country,
+            ])->save();
 
             event(new Authenticated('web', Auth::user()));
             return redirect()->intended(route('dashboard', absolute: false));

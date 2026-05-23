@@ -11,12 +11,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-hover: #4f46e5;
-            --gradient-primary: linear-gradient(135deg, #6366f1, #8b5cf6);
-            --background: hsl(210,40%,98%);
+            --primary:          #1B2B4B;
+            --primary-hover:    #0F1726;
+            --primary-light:    #E8ECF2;
+            --gold:             #C9A227;
+            --gold-hover:       #a07d1a;
+            --gradient-primary: linear-gradient(135deg, #1B2B4B 0%, #0F1726 100%);
+            --gradient-gold:    linear-gradient(135deg, #C9A227 0%, #a07d1a 100%);
+            --background: hsl(220,20%,97%);
             --surface: #fff;
-            --text-main: hsl(215,25%,27%);
+            --text-main: hsl(215,25%,22%);
             --text-muted: hsl(215,16%,47%);
             --border-color: hsl(214,32%,91%);
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
@@ -25,8 +29,8 @@
             --success-light: hsl(142,71%,95%);
             --danger: hsl(0,84%,60%);
             --danger-light: hsl(0,84%,95%);
-            --info: hsl(199,89%,48%);
-            --info-light: hsl(199,89%,95%);
+            --info: hsl(45,78%,52%);
+            --info-light: hsl(45,78%,95%);
             --warning: hsl(38,92%,50%);
             --warning-light: hsl(38,92%,95%);
             --transition-base: 200ms cubic-bezier(0.4,0,0.2,1);
@@ -56,7 +60,7 @@
         .brand-icon {
             width: 32px;
             height: 32px;
-            background: var(--gradient-primary);
+            background: var(--gradient-gold);
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -97,10 +101,21 @@
 
         .btn-primary {
             background: var(--gradient-primary);
-            box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+            box-shadow: 0 4px 12px rgba(27,43,75,0.3);
             color: white;
         }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); color: white; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(27,43,75,0.4); color: white; }
+        .btn-gold {
+            background: var(--gradient-gold);
+            box-shadow: 0 4px 12px rgba(201,162,39,0.35);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all var(--transition-base);
+        }
+        .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,162,39,0.5); color: white; }
 
         .alert {
             border: none;

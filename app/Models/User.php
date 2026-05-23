@@ -35,7 +35,9 @@ protected $fillable = [
     'password',
     'phone',
     'is_active',
-    'last_login_at',     // ← ADD THIS
+    'last_login_at',
+    'last_login_ip',
+    'last_login_country',
     'branch_id',
     'company_id',
 ];

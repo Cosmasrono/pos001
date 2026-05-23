@@ -6,6 +6,7 @@
     <title>@yield('title', 'Wing POS') - {{ config('app.name') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -577,6 +578,50 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        /* ══════════════════════════════
+           TOUR BUTTON
+        ══════════════════════════════ */
+        .btn-tour {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 13px;
+            border-radius: 8px;
+            border: 1.5px solid rgba(99,102,241,0.35);
+            background: rgba(99,102,241,0.07);
+            color: var(--primary);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+        }
+        .btn-tour:hover {
+            background: var(--gradient-primary);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+        }
+
+        /* Driver.js popover overrides */
+        .wingpos-tour-popover .driver-popover-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .wingpos-tour-popover .driver-popover-description {
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #4b5563;
+        }
+        .wingpos-tour-popover .driver-popover-footer button {
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            border-radius: 8px;
+        }
     </style>
     @stack('styles')
 </head>
@@ -605,7 +650,7 @@
                 <div class="nav-section-label">Main</div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+                    <a id="tour-nav-dashboard" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
                        href="{{ route('dashboard') }}">
                         <i class="bi bi-grid nav-icon"></i> Dashboard
                     </a>
@@ -613,7 +658,7 @@
 
                 @if(auth()->check() && (auth()->user()->isSuperAdmin() || auth()->user()->isOwner()))
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('superadmin.inventory') ? 'active' : '' }}"
+                    <a id="tour-nav-inventory-overview" class="nav-link {{ request()->routeIs('superadmin.inventory') ? 'active' : '' }}"
                        href="{{ route('superadmin.inventory') }}">
                         <i class="bi bi-bar-chart-steps nav-icon"></i> Inventory Overview
                     </a>
@@ -621,7 +666,7 @@
                 @endif
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('sales.create') || request()->routeIs('sales.pos') ? 'active' : '' }}"
+                    <a id="tour-nav-pos" class="nav-link {{ request()->routeIs('sales.create') || request()->routeIs('sales.pos') ? 'active' : '' }}"
                        href="{{ route('sales.create') }}">
                         <i class="bi bi-bag-check nav-icon"></i> Point of Sale
                         <span class="nav-badge">POS</span>
@@ -629,7 +674,7 @@
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('sales.index') ? 'active' : '' }}"
+                    <a id="tour-nav-sales" class="nav-link {{ request()->routeIs('sales.index') ? 'active' : '' }}"
                        href="{{ route('sales.index') }}">
                         <i class="bi bi-receipt nav-icon"></i> Sales
                     </a>
@@ -641,28 +686,28 @@
                 <div class="nav-section-label">Inventory</div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}"
+                    <a id="tour-nav-products" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}"
                        href="{{ route('products.index') }}">
                         <i class="bi bi-box-seam nav-icon"></i> Products
                     </a>
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}"
+                    <a id="tour-nav-categories" class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}"
                        href="{{ route('categories.index') }}">
                         <i class="bi bi-tags nav-icon"></i> Categories
                     </a>
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('stock-transfers.*') ? 'active' : '' }}"
+                    <a id="tour-nav-stock-transfers" class="nav-link {{ request()->routeIs('stock-transfers.*') ? 'active' : '' }}"
                        href="{{ route('stock-transfers.index') }}">
                         <i class="bi bi-arrow-left-right nav-icon"></i> Stock Transfers
                     </a>
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('stock.adjustments.*') ? 'active' : '' }}"
+                    <a id="tour-nav-stock-writeoffs" class="nav-link {{ request()->routeIs('stock.adjustments.*') ? 'active' : '' }}"
                        href="{{ route('stock.adjustments.index') }}">
                         <i class="bi bi-shield-exclamation nav-icon" style="color: #ef4444;"></i> Stock Write-offs
                         <span class="nav-badge" style="background: rgba(239,68,68,0.15); color: #ef4444;">Audit</span>
@@ -670,14 +715,14 @@
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('purchase-orders.*') || request()->routeIs('suppliers.*') ? 'active' : '' }}"
+                    <a id="tour-nav-purchases" class="nav-link {{ request()->routeIs('purchase-orders.*') || request()->routeIs('suppliers.*') ? 'active' : '' }}"
                        href="{{ route('purchase-orders.index') }}">
                         <i class="bi bi-cart nav-icon"></i> Order Purchases
                     </a>
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('promotions.*') ? 'active' : '' }}"
+                    <a id="tour-nav-promotions" class="nav-link {{ request()->routeIs('promotions.*') ? 'active' : '' }}"
                        href="{{ route('promotions.index') }}">
                         <i class="bi bi-ticket-perforated nav-icon"></i> Promotions
                     </a>
@@ -687,7 +732,7 @@
                 <div class="nav-section-label">Finance</div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('expenses.*') || request()->routeIs('expense-categories.*') ? 'active' : '' }}"
+                    <a id="tour-nav-expenses" class="nav-link {{ request()->routeIs('expenses.*') || request()->routeIs('expense-categories.*') ? 'active' : '' }}"
                        href="{{ route('expenses.index') }}">
                         <i class="bi bi-cash-stack nav-icon"></i> Expenses
                     </a>
@@ -695,7 +740,7 @@
 
                 @if(auth()->check() && (auth()->user()->isOwner() || auth()->user()->isSuperAdmin()))
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('loans.*') ? 'active' : '' }}"
+                    <a id="tour-nav-loans" class="nav-link {{ request()->routeIs('loans.*') ? 'active' : '' }}"
                        href="{{ route('loans.index') }}">
                         <i class="bi bi-credit-card nav-icon"></i> Loans
                     </a>
@@ -703,14 +748,14 @@
                 @endif
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('invoices.*') ? 'active' : '' }}"
+                    <a id="tour-nav-invoices" class="nav-link {{ request()->routeIs('invoices.*') ? 'active' : '' }}"
                        href="{{ route('invoices.index') }}">
                         <i class="bi bi-file-earmark-text nav-icon"></i> Invoices
                     </a>
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"
+                    <a id="tour-nav-reports" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"
                        href="{{ route('reports.sales') }}">
                         <i class="bi bi-graph-up nav-icon"></i> Reports
                     </a>
@@ -721,14 +766,14 @@
 
                 @if(auth()->check() && (auth()->user()->isOwner() || auth()->user()->isSuperAdmin()))
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('ai.*') ? 'active' : '' }}"
+                    <a id="tour-nav-ai" class="nav-link {{ request()->routeIs('ai.*') ? 'active' : '' }}"
                        href="{{ route('ai.dashboard') }}">
                         <i class="bi bi-robot nav-icon"></i> AI Insights
                     </a>
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}"
+                    <a id="tour-nav-audit" class="nav-link {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}"
                        href="{{ route('audit-logs.index') }}">
                         <i class="bi bi-shield-lock nav-icon"></i> Audit Trail
                     </a>
@@ -736,14 +781,14 @@
                 @endif
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}"
+                    <a id="tour-nav-branches" class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}"
                        href="{{ route('branches.index') }}">
                         <i class="bi bi-building nav-icon"></i> Branches
                     </a>
                 </div>
 
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
+                    <a id="tour-nav-users" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
                        href="{{ route('users.index') }}">
                         <i class="bi bi-people nav-icon"></i> Users
                     </a>
@@ -751,7 +796,7 @@
 
                 @if(auth()->check() && auth()->user()->isOwner())
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('system.control') ? 'active' : '' }}"
+                    <a id="tour-nav-system-control" class="nav-link {{ request()->routeIs('system.control') ? 'active' : '' }}"
                        href="{{ route('system.control') }}">
                         <i class="bi bi-gear-wide-connected nav-icon"></i> System Control
                     </a>
@@ -760,7 +805,7 @@
 
                 @if(auth()->check() && auth()->user()->isPlatformAdmin())
                 <div class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('platform.*') ? 'active' : '' }}"
+                    <a id="tour-nav-platform" class="nav-link {{ request()->routeIs('platform.*') ? 'active' : '' }}"
                        href="{{ route('platform.index') }}">
                         <i class="bi bi-shield-lock nav-icon"></i> Platform
                     </a>
@@ -772,7 +817,7 @@
             </div>
 
             {{-- User + Logout --}}
-            <div class="sidebar-user-section">
+            <div id="tour-sidebar-user" class="sidebar-user-section">
                 <div class="sidebar-user-card">
                     <div class="sidebar-avatar">
                         {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
@@ -815,6 +860,10 @@
                             </h5>
                         </div>
                         <div class="d-flex align-items-center gap-1 gap-md-3">
+                            <button id="startTourBtn" class="btn-tour d-none d-sm-flex" title="Take a guided tour of Wing POS">
+                                <i class="bi bi-signpost-split"></i>
+                                <span class="d-none d-md-inline">Tour</span>
+                            </button>
                             <div id="connectionStatus" class="badge bg-success py-1 px-2">
                                 <i class="bi bi-wifi"></i> <span class="d-none d-md-inline">Online</span>
                             </div>
@@ -907,5 +956,223 @@
         });
     </script>
     @stack('scripts')
+
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tourKey = 'wingpos_tour_v1_{{ auth()->id() }}';
+
+        const { driver } = window.driver.js;
+
+        const allSteps = [
+            {
+                element: '#tour-nav-dashboard',
+                popover: {
+                    title: '📊 Dashboard',
+                    description: 'Your command center. See today\'s sales totals, stock alerts, top-selling products, and key business metrics at a glance.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-inventory-overview',
+                popover: {
+                    title: '📦 Inventory Overview',
+                    description: 'A bird\'s-eye view of stock levels and inventory value across all your branches in one place.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-pos',
+                popover: {
+                    title: '🛍️ Point of Sale',
+                    description: 'The heart of your business. Process sales, scan products, apply promotions, and handle cash or M-Pesa payments — fast.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-sales',
+                popover: {
+                    title: '🧾 Sales',
+                    description: 'View the full history of completed sales, reprint receipts, and track transaction details.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-products',
+                popover: {
+                    title: '📦 Products',
+                    description: 'Manage your product catalog — add items, set selling prices, track stock levels per branch, and configure low-stock reorder points.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-categories',
+                popover: {
+                    title: '🏷️ Categories',
+                    description: 'Group products into categories for cleaner management, faster POS filtering, and clearer reports.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-stock-transfers',
+                popover: {
+                    title: '🔄 Stock Transfers',
+                    description: 'Move inventory between branches seamlessly. Every transfer is logged with a full audit trail.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-stock-writeoffs',
+                popover: {
+                    title: '⚠️ Stock Write-offs',
+                    description: 'Record damaged, expired, or missing stock. Every write-off is permanently logged for audit and compliance — handle with care.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-purchases',
+                popover: {
+                    title: '🛒 Order Purchases',
+                    description: 'Create purchase orders, manage suppliers, and receive incoming stock to keep shelves stocked.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-promotions',
+                popover: {
+                    title: '🎟️ Promotions',
+                    description: 'Set up percentage discounts, flat-rate deals, and time-limited offers that auto-apply at the POS.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-expenses',
+                popover: {
+                    title: '💵 Expenses',
+                    description: 'Log and categorize all business expenses — rent, utilities, salaries — to keep your P&L accurate.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-loans',
+                popover: {
+                    title: '💳 Loans',
+                    description: 'Track business loans, monitor outstanding balances, and record repayments over time.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-invoices',
+                popover: {
+                    title: '📄 Invoices',
+                    description: 'Generate professional invoices for credit customers and track which have been paid or are overdue.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-reports',
+                popover: {
+                    title: '📈 Reports',
+                    description: 'Deep-dive into sales performance, profit & loss, and business trends. Great for end-of-day and monthly reviews.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-ai',
+                popover: {
+                    title: '🤖 AI Insights',
+                    description: 'AI-powered recommendations: which products to restock, pricing health scores, and demand pattern analysis for your branch.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-audit',
+                popover: {
+                    title: '🛡️ Audit Trail',
+                    description: 'A full, tamper-evident log of every action in the system — who did what and when. Essential for accountability.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-branches',
+                popover: {
+                    title: '🏢 Branches',
+                    description: 'Manage all your business locations, assign staff to branches, and configure branch-specific settings.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-users',
+                popover: {
+                    title: '👥 Users',
+                    description: 'Add team members and assign roles: Owner, Manager, or Cashier. Each role controls what the user can see and do.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-system-control',
+                popover: {
+                    title: '⚙️ System Control',
+                    description: 'Advanced business settings — receipt customisation, tax configuration, and owner-level system controls.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-nav-platform',
+                popover: {
+                    title: '🔐 Platform Admin',
+                    description: 'Platform-wide administration panel for managing all tenants, subscriptions, and system-level settings.',
+                    side: 'right', align: 'start'
+                }
+            },
+            {
+                element: '#tour-sidebar-user',
+                popover: {
+                    title: '👤 Your Account',
+                    description: 'Your profile shows your name and role. Use the Sign out button when you\'re done for the day.',
+                    side: 'top', align: 'start'
+                }
+            },
+        ];
+
+        function buildSteps() {
+            return allSteps.filter(function (step) {
+                return document.querySelector(step.element) !== null;
+            });
+        }
+
+        function startTour() {
+            var steps = buildSteps();
+            if (!steps.length) return;
+
+            var tourInstance = driver({
+                showProgress: true,
+                showButtons: ['next', 'previous', 'close'],
+                nextBtnText: 'Next &rarr;',
+                prevBtnText: '&larr; Back',
+                doneBtnText: 'Done!',
+                progressText: '@{{current}} of @{{total}}',
+                popoverClass: 'wingpos-tour-popover',
+                steps: steps,
+                onDestroyStarted: function () {
+                    localStorage.setItem(tourKey, '1');
+                    tourInstance.destroy();
+                },
+            });
+
+            tourInstance.drive();
+        }
+
+        var tourBtn = document.getElementById('startTourBtn');
+        if (tourBtn) {
+            tourBtn.addEventListener('click', startTour);
+        }
+
+        // Auto-start once per user on first login
+        if (!localStorage.getItem(tourKey)) {
+            setTimeout(startTour, 900);
+        }
+    });
+    </script>
 </body>
 </html>

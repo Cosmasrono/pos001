@@ -12,7 +12,9 @@ trait BelongsToCompany
     public static function bootBelongsToCompany(): void
     {
         static::addGlobalScope('company', function (Builder $builder) {
-            $companyId = app()->bound('current_company_id') ? app('current_company_id') : null;
+            $companyId = app()->bound('current_company_id')
+                ? app('current_company_id')
+                : (auth()->user()?->company_id ?? null);
 
             if ($companyId === null) {
                 $builder->whereRaw('1 = 0');
