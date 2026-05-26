@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductBranchStock extends Model
 {
-    use \App\Traits\Auditable, \App\Traits\BranchScoped;
+    use \App\Traits\Auditable, \App\Traits\BranchScoped, \App\Traits\BelongsToCompany;
 
     protected $table = 'product_branch_stocks';
 
     protected $fillable = [
+        'company_id',
         'product_id',
         'branch_id',
         'quantity_in_stock',
@@ -19,6 +20,7 @@ class ProductBranchStock extends Model
     ];
 
     protected $casts = [
+        'company_id' => 'integer',
         'product_id' => 'integer',
         'branch_id' => 'integer',
         'quantity_in_stock' => 'integer',
@@ -26,10 +28,6 @@ class ProductBranchStock extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    // ────────────────────────────────────────────────
-    // Relationships
-    // ────────────────────────────────────────────────
 
     public function product(): BelongsTo
     {

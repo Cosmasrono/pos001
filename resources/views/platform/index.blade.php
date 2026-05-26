@@ -257,4 +257,39 @@
 </div>
 
 
+{{-- Recent Logins --}}
+<div class="card mt-4">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-geo-alt-fill text-primary"></i>
+        <span>Recent Logins — IP &amp; Location</span>
+        <span class="badge bg-secondary ms-auto">Last 20</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size:.875rem;">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>IP Address</th>
+                    <th>Country</th>
+                    <th>Last Login</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($recentLogins as $login)
+                    <tr>
+                        <td class="fw-semibold">{{ $login['name'] }}</td>
+                        <td class="text-muted">{{ $login['email'] }}</td>
+                        <td><code>{{ $login['ip'] }}</code></td>
+                        <td>{{ $login['country'] }}</td>
+                        <td>{{ \Carbon\Carbon::parse($login['last_login_at'])->diffForHumans() }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="5" class="text-center text-muted py-4">No logins recorded yet.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
 @endsection

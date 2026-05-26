@@ -39,8 +39,15 @@ class AuditLog extends Model
     
     public static function log($event, $model = null, array $oldValues = null, array $newValues = null)
     {
+        $authUserId = auth()->id();
+        $resolvedUserId = null;
+
+        if ($authUserId && User::whereKey($authUserId)->exists()) {
+            $resolvedUserId = $authUserId;
+        }
+
         return self::create([
-            'user_id' => auth()->id(),
+            'user_id' => $resolvedUserId,
             'event' => $event,
             'auditable_type' => $model ? get_class($model) : null,
             'auditable_id' => $model ? $model->id : null,

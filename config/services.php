@@ -51,4 +51,10 @@ return [
         'security_credential' => env('MPESA_SECURITY_CREDENTIAL'),
     ],
 
+    'recaptcha' => [
+        'public_key' => env('RECAPTCHA_PUBLIC_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+        'version' => env('RECAPTCHA_VERSION', 'v3'),
+    ],
+
 ];

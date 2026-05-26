@@ -67,7 +67,7 @@
                                         <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-grid text-muted"></i></span>
-                                            <select name="category_id" id="category_id" class="form-select border-start-0 @error('category_id') is-invalid @enderror" required>
+                                            <select name="category_id" id="category_id" class="form-select border-start-0 border-end-0 @error('category_id') is-invalid @enderror" required>
                                                 <option value="">Select Category</option>
                                                 @foreach($categories as $category)
                                                     <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
@@ -75,6 +75,11 @@
                                                     </option>
                                                 @endforeach
                                             </select>
+                                            <button type="button" class="btn btn-outline-primary border-2" id="addCategoryBtn"
+                                                    data-bs-toggle="modal" data-bs-target="#categoryModal"
+                                                    title="Add new category">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
                                             @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
@@ -289,7 +294,46 @@
     }
 </style>
 
-@section('scripts')
+{{-- Add Category Modal --}}
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px !important;">
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-primary-light p-2">
+                        <i class="bi bi-grid-fill text-primary fs-5"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-0" id="categoryModalLabel">New Category</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div id="cat-error" class="alert alert-danger d-none py-2 small"></div>
+                <div class="mb-3">
+                    <label for="cat-name" class="form-label fw-semibold">Category Name <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-tag text-muted"></i></span>
+                        <input type="text" id="cat-name" class="form-control border-start-0"
+                               placeholder="e.g. Beverages, Electronics…" maxlength="255">
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <label for="cat-desc" class="form-label fw-semibold">Description <span class="text-muted small fw-normal">(optional)</span></label>
+                    <textarea id="cat-desc" class="form-control" rows="2" placeholder="Short description…" maxlength="500"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 pt-2 gap-2">
+                <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="saveCategoryBtn" class="btn btn-primary px-4">
+                    <span id="catBtnText"><i class="bi bi-check-circle me-1"></i>Save Category</span>
+                    <span id="catBtnSpinner" class="d-none spinner-border spinner-border-sm"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -332,6 +376,81 @@ document.addEventListener('DOMContentLoaded', () => {
         otherBranchQtys.forEach(inp => { inp.addEventListener('input', updateFromTotal); });
         updateFromTotal();
     }
+
+    // ── Category quick-add modal ──────────────────────────────────────────────
+    const categoryModal  = document.getElementById('categoryModal');
+    const catNameInput   = document.getElementById('cat-name');
+    const catDescInput   = document.getElementById('cat-desc');
+    const catErrorBox    = document.getElementById('cat-error');
+    const saveCategoryBtn = document.getElementById('saveCategoryBtn');
+    const catBtnText     = document.getElementById('catBtnText');
+    const catBtnSpinner  = document.getElementById('catBtnSpinner');
+    const categorySelect = document.getElementById('category_id');
+
+    if (categoryModal) {
+        categoryModal.addEventListener('shown.bs.modal', () => catNameInput.focus());
+        categoryModal.addEventListener('hidden.bs.modal', () => {
+            catNameInput.value = '';
+            catDescInput.value = '';
+            catErrorBox.classList.add('d-none');
+            catErrorBox.textContent = '';
+        });
+
+        catNameInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); saveCategoryBtn.click(); }
+        });
+
+        saveCategoryBtn.addEventListener('click', async () => {
+            const name = catNameInput.value.trim();
+            if (!name) {
+                catErrorBox.textContent = 'Category name is required.';
+                catErrorBox.classList.remove('d-none');
+                catNameInput.focus();
+                return;
+            }
+
+            catBtnText.classList.add('d-none');
+            catBtnSpinner.classList.remove('d-none');
+            saveCategoryBtn.disabled = true;
+            catErrorBox.classList.add('d-none');
+
+            try {
+                const resp = await fetch('{{ route('categories.quick-store') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                                     ?? '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ name, description: catDescInput.value.trim() }),
+                });
+
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    const msg = data.errors?.name?.[0] ?? data.message ?? 'Could not save category.';
+                    catErrorBox.textContent = msg;
+                    catErrorBox.classList.remove('d-none');
+                    return;
+                }
+
+                // Add to select and auto-select the new category
+                const opt = new Option(data.name, data.id, true, true);
+                categorySelect.add(opt);
+                categorySelect.dispatchEvent(new Event('change'));
+
+                bootstrap.Modal.getInstance(categoryModal).hide();
+            } catch {
+                catErrorBox.textContent = 'Network error. Please try again.';
+                catErrorBox.classList.remove('d-none');
+            } finally {
+                catBtnText.classList.remove('d-none');
+                catBtnSpinner.classList.add('d-none');
+                saveCategoryBtn.disabled = false;
+            }
+        });
+    }
 });
 </script>
 <style>
@@ -342,5 +461,5 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
 </style>
-@endsection
+@endpush
 @endsection

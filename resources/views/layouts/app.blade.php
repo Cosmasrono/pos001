@@ -780,6 +780,7 @@
                 </div>
                 @endif
 
+                @if(auth()->check() && auth()->user()->isOwner())
                 <div class="nav-item">
                     <a id="tour-nav-branches" class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}"
                        href="{{ route('branches.index') }}">
@@ -793,15 +794,8 @@
                         <i class="bi bi-people nav-icon"></i> Users
                     </a>
                 </div>
-
-                @if(auth()->check() && auth()->user()->isOwner())
-                <div class="nav-item">
-                    <a id="tour-nav-system-control" class="nav-link {{ request()->routeIs('system.control') ? 'active' : '' }}"
-                       href="{{ route('system.control') }}">
-                        <i class="bi bi-gear-wide-connected nav-icon"></i> System Control
-                    </a>
-                </div>
                 @endif
+
 
                 @if(auth()->check() && auth()->user()->isPlatformAdmin())
                 <div class="nav-item">

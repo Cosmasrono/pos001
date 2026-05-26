@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockMovement extends Model
 {
-    use \App\Traits\BranchScoped;
+    use \App\Traits\BranchScoped, \App\Traits\BelongsToCompany;
 
     protected $fillable = [
+        'company_id',
         'product_id',
         'branch_id',
         'from_branch_id',

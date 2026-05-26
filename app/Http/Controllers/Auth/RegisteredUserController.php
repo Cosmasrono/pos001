@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Role;
 use App\Models\User;
+use App\Rules\CaptchaRule;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,12 +27,17 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $captchaRules = config('services.recaptcha.public_key')
+            ? ['required', new CaptchaRule()]
+            : ['nullable', new CaptchaRule()];
+
         $request->validate([
-            'shop_name' => ['required', 'string', 'max:255'],
-            'name'      => ['required', 'string', 'max:255'],
-            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255'],
-            'phone'     => ['nullable', 'string', 'max:20'],
-            'password'  => ['required', 'confirmed', Rules\Password::defaults()],
+            'shop_name'          => ['required', 'string', 'max:255'],
+            'name'               => ['required', 'string', 'max:255'],
+            'email'              => ['required', 'string', 'lowercase', 'email', 'max:255'],
+            'phone'              => ['nullable', 'string', 'max:20'],
+            'password'           => ['required', 'confirmed', Rules\Password::defaults()],
+            'g-recaptcha-response' => $captchaRules,
         ]);
 
         // If email exists but was never verified, wipe it so they can start fresh
@@ -43,14 +49,20 @@ class RegisteredUserController extends Controller
         ]);
     }
     
-    DB::transaction(function () use ($existing) {
-        $company = $existing->company;   // grab reference before deleting user
-        $existing->delete();              // delete user FIRST
-        if ($company) {
-            // make sure no other users reference this company
-            if ($company->users()->count() === 0) {
-                $company->delete();
-            }
+    DB::transaction(function () use ($existing, $request) {
+        $existingId = $existing->id;
+
+        // Only remove the unverified user record.
+        // Do not delete company here: other tenant tables can still reference it
+        // (e.g. ai_briefs with a NO ACTION FK), which causes SQLSTATE 23000.
+        $existing->delete();
+
+        // If this deleted user was still authenticated in the current session,
+        // clear auth/session state to avoid stale foreign key references.
+        if (Auth::id() === $existingId) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
     });
 }
@@ -88,6 +100,7 @@ class RegisteredUserController extends Controller
             $user->roles()->attach($ownerRole->id);
 
             $branch = Branch::create([
+                'company_id'                     => $company->id,
                 'name'                          => 'Main Branch',
                 'code'                          => 'MAIN-' . strtoupper(Str::random(4)),
                 'address'                       => null,

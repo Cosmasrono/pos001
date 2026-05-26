@@ -58,8 +58,8 @@ class SystemControlController extends Controller
 
     protected function authorizeOwner()
     {
-        if (!auth()->user() || !auth()->user()->isOwner()) {
-            abort(403, 'Unauthorized action. Only the System Owner can access this page.');
+        if (!auth()->user() || !auth()->user()->isPlatformAdmin()) {
+            abort(403, 'Unauthorized action. Only the Platform Administrator can access this page.');
         }
     }
 }

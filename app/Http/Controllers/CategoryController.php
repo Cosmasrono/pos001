@@ -6,6 +6,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
 {
@@ -73,6 +74,24 @@ class CategoryController extends Controller
 
         return redirect()->route('categories.index')
             ->with('success', 'Category updated successfully.');
+    }
+
+    /**
+     * Quick-create a category via AJAX (returns JSON for inline modal use).
+     */
+    public function quickStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255|unique:categories',
+            'description' => 'nullable|string',
+        ]);
+
+        $category = Category::create($validated);
+
+        return response()->json([
+            'id'   => $category->id,
+            'name' => $category->name,
+        ], 201);
     }
 
     /**

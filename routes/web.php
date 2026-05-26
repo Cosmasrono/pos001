@@ -26,14 +26,15 @@ Route::get('/', function () {
 // Authentication Routes
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:5,1');
     Route::get('register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'create'])->name('register');
-    Route::post('register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
+    Route::post('register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store'])->middleware('throttle:3,1');
 
     Route::get('forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
     Route::post('forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:3,1')
         ->name('password.email');
 
     Route::get('reset-password/{token}', [App\Http\Controllers\Auth\NewPasswordController::class, 'edit'])
@@ -45,8 +46,9 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
-    Route::get('/superadmin/inventory', [App\Http\Controllers\DashboardController::class, 'superAdminInventory'])->name('superadmin.inventory');
-
+ Route::get('/superadmin/inventory', [App\Http\Controllers\DashboardController::class, 'superAdminInventory'])
+    ->middleware('role:owner,super_admin,manager')
+    ->name('superadmin.inventory');
     // Branch Management (Owner / Super Admin / Manager only)
     Route::resource('branches', App\Http\Controllers\BranchController::class)
         ->middleware('role:owner,super_admin,manager');
@@ -59,13 +61,14 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('stock-transfers', StockTransferController::class);
     Route::post('products/add-stock', [ProductController::class, 'addStock'])->name('stock.add');
     Route::post('products/{product}/batch-transfer', [ProductController::class, 'batchTransfer'])->name('products.batch-transfer');
+    Route::post('categories/quick-store', [CategoryController::class, 'quickStore'])->name('categories.quick-store');
     Route::resource('categories', CategoryController::class);
     Route::resource('suppliers', SupplierController::class);
     Route::resource('purchase-orders', PurchaseOrderController::class);
     Route::get('purchase-orders/{purchase_order}/receive', [PurchaseOrderController::class, 'receiveForm'])->name('purchase-orders.receive-form');
     Route::post('purchase-orders/{purchase_order}/receive', [PurchaseOrderController::class, 'receive'])->name('purchase-orders.receive');
     Route::get('stock-transfers/stock-info', [StockTransferController::class, 'getStockInfo'])->name('stock-transfers.stock-info');
-    Route::resource('stock-transfers', StockTransferController::class);
+ 
 
     // Stock Write-offs / Adjustments (Theft, Damage, Expiry, etc.)
     Route::get('stock/adjustments', [App\Http\Controllers\StockAdjustmentController::class, 'index'])->name('stock.adjustments.index');
@@ -160,7 +163,9 @@ Route::get('/email/verify/{id}/{hash}', function (\Illuminate\Http\Request $requ
         $user->markEmailAsVerified();
     }
 
-    return redirect()->route('login')->with('success', 'Email verified successfully! You can now log in to WingPOS.');
+    $message = 'Email verified successfully! You can now log in to WingPOS.';
+
+    return redirect()->route('login')->with('success', $message);
 })->middleware('signed')->name('verification.verify');
 
 Route::middleware('auth')->group(function () {

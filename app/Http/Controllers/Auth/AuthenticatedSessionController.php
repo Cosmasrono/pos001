@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\CartService;
+use App\Rules\CaptchaRule;
 use Illuminate\Auth\Events\Authenticated;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,17 +28,47 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
+        // Bot detection - check user agent
+        $userAgent = $request->userAgent() ?? '';
+        if ($this->isSuspiciousBot($userAgent)) {
+            \Illuminate\Support\Facades\Log::warning('Suspicious bot login attempt', [
+                'ip' => $request->ip(),
+                'user_agent' => $userAgent,
+                'email' => $request->email
+            ]);
+            return back()->withErrors([
+                'email' => 'Access denied. Please use a standard web browser.',
+            ])->onlyInput('email');
+        }
+
+        $captchaRules = config('services.recaptcha.public_key')
+            ? ['required', new CaptchaRule()]
+            : ['nullable', new CaptchaRule()];
+
+        $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'g-recaptcha-response' => $captchaRules,
         ]);
         
 
-        $user = \App\Models\User::where('email', $credentials['email'])->first();
+        $credentials = $request->only('email', 'password');
+        $user = \App\Models\User::where('email', $validated['email'])->first();
         $remember = $request->boolean('remember') || ($user && $user->isOwner());
 
         if (Auth::attempt($credentials, $remember)) {
-            // Check if the system is deactivated
+            // CHECK 1: Verify email is verified
+            if (!Auth::user()->hasVerifiedEmail()) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                
+                return back()->withErrors([
+                    'email' => 'Please verify your email address before logging in. Check your inbox for the verification link.',
+                ])->onlyInput('email');
+            }
+
+            // CHECK 2: Check if the system is deactivated
             if (!\App\Models\Setting::isSystemActive() && !Auth::user()->isOwner()) {
                 Auth::logout();
                 $request->session()->invalidate();
@@ -74,12 +105,41 @@ class AuthenticatedSessionController extends Controller
             ])->save();
 
             event(new Authenticated('web', Auth::user()));
-            return redirect()->intended(route('dashboard', absolute: false));
+            return redirect()->route('dashboard');
         }
 
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    /**
+     * Detect suspicious bot patterns from user agent
+     */
+    private function isSuspiciousBot(string $userAgent): bool
+    {
+        $botPatterns = [
+            'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget', 'python',
+            'java', 'perl', 'ruby', 'r\s', 'request', 'httpclient', 
+            'mechanize', 'libwww', 'urllib', 'aiohttp', 'golang', 'node'
+        ];
+
+        $userAgentLower = strtolower($userAgent);
+        
+        // Check for bot patterns
+        foreach ($botPatterns as $pattern) {
+            if (preg_match("/{$pattern}/i", $userAgentLower)) {
+                return true;
+            }
+        }
+
+        // Check for missing common browser identifiers
+        $hasCommonBrowser = preg_match('/(chrome|firefox|safari|edge|opera|msie)/i', $userAgent);
+        if (empty($userAgent) || !$hasCommonBrowser) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

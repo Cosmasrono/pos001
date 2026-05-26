@@ -91,6 +91,38 @@
                         </div>
                     </div>
 
+                    <div class="card bg-light border mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Purchase & Selling Units</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="purchase_unit" class="form-label">Bought As</label>
+                                    <input type="text" id="purchase_unit" name="purchase_unit" class="form-control"
+                                           value="{{ old('purchase_unit', $product->purchase_unit ?? 'unit') }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="selling_unit" class="form-label">Sold As</label>
+                                    <input type="text" id="selling_unit" name="selling_unit" class="form-control"
+                                           value="{{ old('selling_unit', $product->selling_unit ?? 'unit') }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="units_per_purchase_unit" class="form-label">Units Per Purchase Unit</label>
+                                    <input type="number" id="units_per_purchase_unit" name="units_per_purchase_unit"
+                                           class="form-control" min="1"
+                                           value="{{ old('units_per_purchase_unit', $product->units_per_purchase_unit ?? 1) }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="purchase_price" class="form-label">Purchase Price Per Unit Bought</label>
+                                    <input type="number" step="0.01" id="purchase_price" name="purchase_price"
+                                           class="form-control" min="0"
+                                           value="{{ old('purchase_price', $product->purchase_price) }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <label for="reorder_level" class="form-label">Reorder Level</label>
