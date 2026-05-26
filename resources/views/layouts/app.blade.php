@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#6366f1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         :root {
             --primary: #6366f1;
@@ -949,6 +950,94 @@
             if (overlay) overlay.addEventListener('click', toggleSidebar);
         });
     </script>
+    {{-- Inactivity timeout: warn at 28 min, logout at 30 min --}}
+    <div class="modal fade" id="inactivityModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <span style="font-size:2.5rem;">⏱️</span>
+                    </div>
+                    <h5 class="fw-bold mb-2">Still there?</h5>
+                    <p class="text-muted small mb-3">You've been inactive for a while. You'll be logged out in <strong id="inactivity-countdown">2:00</strong>.</p>
+                    <button id="inactivity-stay-btn" class="btn btn-primary px-4">Stay Logged In</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        const WARN_MS   = 28 * 60 * 1000; // show warning at 28 min
+        const LOGOUT_MS = 30 * 60 * 1000; // log out at 30 min
+        const WARN_SECS = 2 * 60;         // countdown seconds shown in modal
+
+        let warnTimer, logoutTimer, countdownInterval;
+        let modal;
+
+        function getModal() {
+            if (!modal) modal = new bootstrap.Modal(document.getElementById('inactivityModal'));
+            return modal;
+        }
+
+        function startCountdown() {
+            let secs = WARN_SECS;
+            const el = document.getElementById('inactivity-countdown');
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(function () {
+                secs--;
+                if (el) {
+                    const m = Math.floor(secs / 60);
+                    const s = secs % 60;
+                    el.textContent = m + ':' + String(s).padStart(2, '0');
+                }
+                if (secs <= 0) clearInterval(countdownInterval);
+            }, 1000);
+        }
+
+        function doLogout() {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route('logout') }}';
+            const tok = document.createElement('input');
+            tok.type  = 'hidden';
+            tok.name  = '_token';
+            tok.value = document.querySelector('meta[name="csrf-token"]').content;
+            form.appendChild(tok);
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function resetTimers() {
+            clearTimeout(warnTimer);
+            clearTimeout(logoutTimer);
+            clearInterval(countdownInterval);
+
+            // Hide modal if open
+            try { getModal().hide(); } catch (e) {}
+
+            warnTimer = setTimeout(function () {
+                getModal().show();
+                startCountdown();
+            }, WARN_MS);
+
+            logoutTimer = setTimeout(doLogout, LOGOUT_MS);
+        }
+
+        // Stay logged in button
+        document.getElementById('inactivity-stay-btn').addEventListener('click', function () {
+            resetTimers();
+        });
+
+        // Reset on any user activity
+        ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (ev) {
+            document.addEventListener(ev, resetTimers, { passive: true });
+        });
+
+        resetTimers(); // kick off
+    })();
+    </script>
+
     @stack('scripts')
 
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
