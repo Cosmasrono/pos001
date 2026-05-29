@@ -97,39 +97,47 @@ class PlatformController extends Controller
         return back()->with('success', "{$company->name} has been suspended.");
     }
 
-    public function purgeBots(): RedirectResponse
-    {
-        // Companies whose owner never logged in, no products, older than 1 hour
-        $bots = Company::whereHas('owner', fn($q) => $q->whereNull('last_login_at'))
-            ->doesntHave('products')
-            ->where('created_at', '<', Carbon::now()->subHour())
-            ->with('owner')
-            ->get();
+   public function purgeBots(): RedirectResponse
+{
+    // Companies whose owner never logged in, no products, older than 1 hour
+    $bots = Company::whereHas('owner', fn($q) => $q->whereNull('last_login_at'))
+        ->doesntHave('products')
+        ->where('created_at', '<', Carbon::now()->subHour())
+        ->with('owner')
+        ->get();
 
-        $count = 0;
-        foreach ($bots as $company) {
-            $id = $company->id;
+    $count = 0;
 
-            \DB::table('branch_product')->whereIn(
-                'branch_id', \DB::table('branches')->where('company_id', $id)->pluck('id')
-            )->delete();
+    foreach ($bots as $company) {
+        $id = $company->id;
 
-            \DB::table('sale_items')->whereIn(
-                'sale_id', \DB::table('sales')->where('company_id', $id)->pluck('id')
-            )->delete();
+        \DB::transaction(function () use ($id) {
+            $branchIds = \DB::table('branches')->where('company_id', $id)->pluck('id');
+            $saleIds   = \DB::table('sales')->where('company_id', $id)->pluck('id');
+            $userIds   = \DB::table('users')->where('company_id', $id)->pluck('id');
 
+            // Branch↔product stock (correct table name)
+            \DB::table('product_branch_stocks')->whereIn('branch_id', $branchIds)->delete();
+
+            // Sale line items, then sales
+            \DB::table('sale_items')->whereIn('sale_id', $saleIds)->delete();
             \DB::table('sales')->where('company_id', $id)->delete();
+
+            // Products and branches
             \DB::table('products')->where('company_id', $id)->delete();
             \DB::table('branches')->where('company_id', $id)->delete();
 
-            $userIds = \DB::table('users')->where('company_id', $id)->pluck('id');
+            // Users and their role pivots
             \DB::table('role_user')->whereIn('user_id', $userIds)->delete();
             \DB::table('users')->where('company_id', $id)->delete();
+
+            // Finally the company
             \DB::table('companies')->where('id', $id)->delete();
+        });
 
-            $count++;
-        }
-
-        return back()->with('success', "Purged {$count} bot registration(s).");
+        $count++;
     }
+
+    return back()->with('success', "Purged {$count} bot registration(s).");
+}
 }
