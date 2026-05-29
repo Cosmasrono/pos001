@@ -147,6 +147,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [App\Http\Controllers\PlatformController::class, 'index'])->name('index');
         Route::post('companies/{company}/activate', [App\Http\Controllers\PlatformController::class, 'activateCompany'])->name('companies.activate');
         Route::post('companies/{company}/suspend', [App\Http\Controllers\PlatformController::class, 'suspendCompany'])->name('companies.suspend');
+        Route::post('bots/purge', [App\Http\Controllers\PlatformController::class, 'purgeBots'])->name('bots.purge');
     });
 });
 
@@ -161,9 +162,18 @@ Route::get('/email/verify/{id}/{hash}', function (\Illuminate\Http\Request $requ
 
     if (!$user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
+
+        // Start the 7-day trial only now that the email is confirmed real
+        $company = \App\Models\Company::find($user->company_id);
+        if ($company && $company->subscription_status === 'pending') {
+            $company->update([
+                'subscription_status' => 'trial',
+                'trial_ends_at'       => now()->addDays(7),
+            ]);
+        }
     }
 
-    $message = 'Email verified successfully! You can now log in to WingPOS.';
+    $message = 'Email verified successfully! Your 7-day free trial has started. You can now log in to WingPOS.';
 
     return redirect()->route('login')->with('success', $message);
 })->middleware('signed')->name('verification.verify');

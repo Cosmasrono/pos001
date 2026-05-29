@@ -96,5 +96,40 @@ class PlatformController extends Controller
 
         return back()->with('success', "{$company->name} has been suspended.");
     }
-    
+
+    public function purgeBots(): RedirectResponse
+    {
+        // Companies whose owner never logged in, no products, older than 1 hour
+        $bots = Company::whereHas('owner', fn($q) => $q->whereNull('last_login_at'))
+            ->doesntHave('products')
+            ->where('created_at', '<', Carbon::now()->subHour())
+            ->with('owner')
+            ->get();
+
+        $count = 0;
+        foreach ($bots as $company) {
+            $id = $company->id;
+
+            \DB::table('branch_product')->whereIn(
+                'branch_id', \DB::table('branches')->where('company_id', $id)->pluck('id')
+            )->delete();
+
+            \DB::table('sale_items')->whereIn(
+                'sale_id', \DB::table('sales')->where('company_id', $id)->pluck('id')
+            )->delete();
+
+            \DB::table('sales')->where('company_id', $id)->delete();
+            \DB::table('products')->where('company_id', $id)->delete();
+            \DB::table('branches')->where('company_id', $id)->delete();
+
+            $userIds = \DB::table('users')->where('company_id', $id)->pluck('id');
+            \DB::table('role_user')->whereIn('user_id', $userIds)->delete();
+            \DB::table('users')->where('company_id', $id)->delete();
+            \DB::table('companies')->where('id', $id)->delete();
+
+            $count++;
+        }
+
+        return back()->with('success', "Purged {$count} bot registration(s).");
+    }
 }

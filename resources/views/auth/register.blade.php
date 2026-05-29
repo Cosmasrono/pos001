@@ -129,6 +129,10 @@
 
             <form method="POST" action="{{ route('register') }}" novalidate>
                 @csrf
+                {{-- Honeypot: bots fill this, humans never see it --}}
+                <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true" tabindex="-1">
+                    <input type="text" name="website" value="" autocomplete="off" tabindex="-1">
+                </div>
 
                 <div class="form-group">
                     <label class="form-label">Business Name</label>

@@ -27,6 +27,11 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        // Honeypot: any bot that fills this field is silently rejected
+        if ($request->filled('website')) {
+            return redirect()->route('register');
+        }
+
         $captchaRules = config('services.recaptcha.public_key')
             ? ['required', new CaptchaRule()]
             : ['nullable', new CaptchaRule()];
@@ -74,8 +79,8 @@ class RegisteredUserController extends Controller
                 'email'               => $request->email,
                 'phone'               => $request->phone,
                 'is_active'           => true,
-                'subscription_status' => 'trial',
-                'trial_ends_at'       => now()->addDays(7),
+                'subscription_status' => 'pending',
+                'trial_ends_at'       => null,
                 'currency'            => 'KES',
                 'timezone'            => 'Africa/Nairobi',
                 'country'             => 'KE',

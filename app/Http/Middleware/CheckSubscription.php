@@ -21,13 +21,19 @@ class CheckSubscription
             return $next($request);
         }
 
-        $allowedRoutes = ['subscription.expired', 'login', 'logout', 'system.unavailable', 'mpesa.callback'];
+        $allowedRoutes = ['subscription.expired', 'login', 'logout', 'system.unavailable', 'mpesa.callback',
+                          'verification.notice', 'verification.send', 'verification.verify'];
         $routeName = $request->route()?->getName() ?? '';
         if (in_array($routeName, $allowedRoutes, true) || str_starts_with($routeName, 'subscribe.')) {
             return $next($request);
         }
 
         $company = $user->company;
+
+        // Unverified users: redirect to email verification, not subscription-expired
+        if ($company && $company->subscription_status === 'pending') {
+            return redirect()->route('verification.notice');
+        }
 
         if (!$company) {
             return redirect()->route('subscription.expired');

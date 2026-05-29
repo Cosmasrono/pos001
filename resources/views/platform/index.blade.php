@@ -50,14 +50,23 @@
 
 {{-- Hero --}}
 <div class="platform-hero shadow">
-    <div class="d-flex align-items-center gap-3">
-        <i class="bi bi-shield-lock-fill" style="font-size: 2rem;"></i>
-        <div>
-            <h4 class="mb-1 fw-bold">Platform Dashboard</h4>
-            <p class="mb-0 opacity-75" style="font-size: .9rem;">
-                Overview of all companies, users, and activity across WingPOS.
-            </p>
+    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-shield-lock-fill" style="font-size: 2rem;"></i>
+            <div>
+                <h4 class="mb-1 fw-bold">Platform Dashboard</h4>
+                <p class="mb-0 opacity-75" style="font-size: .9rem;">
+                    Overview of all companies, users, and activity across WingPOS.
+                </p>
+            </div>
         </div>
+        <form method="POST" action="{{ route('platform.bots.purge') }}"
+              onsubmit="return confirm('Delete all bot registrations (never logged in, no products)? This cannot be undone.')">
+            @csrf
+            <button type="submit" class="btn btn-sm btn-danger d-flex align-items-center gap-2">
+                <i class="bi bi-trash3-fill"></i> Purge Bot Registrations
+            </button>
+        </form>
         <div class="ms-auto text-end d-none d-md-block">
             <div class="opacity-75 small">As of</div>
             <div class="fw-semibold">{{ now()->format('d M Y, H:i') }}</div>
