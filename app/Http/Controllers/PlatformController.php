@@ -112,27 +112,28 @@ class PlatformController extends Controller
         $id = $company->id;
 
         \DB::transaction(function () use ($id) {
-            $branchIds = \DB::table('branches')->where('company_id', $id)->pluck('id');
-            $saleIds   = \DB::table('sales')->where('company_id', $id)->pluck('id');
-            $userIds   = \DB::table('users')->where('company_id', $id)->pluck('id');
+            \DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-            // Branch↔product stock (correct table name)
-            \DB::table('product_branch_stocks')->whereIn('branch_id', $branchIds)->delete();
+            try {
+                $branchIds = \DB::table('branches')->where('company_id', $id)->pluck('id');
+                $saleIds   = \DB::table('sales')->where('company_id', $id)->pluck('id');
+                $userIds   = \DB::table('users')->where('company_id', $id)->pluck('id');
 
-            // Sale line items, then sales
-            \DB::table('sale_items')->whereIn('sale_id', $saleIds)->delete();
-            \DB::table('sales')->where('company_id', $id)->delete();
+                \DB::table('product_branch_stocks')->whereIn('branch_id', $branchIds)->delete();
 
-            // Products and branches
-            \DB::table('products')->where('company_id', $id)->delete();
-            \DB::table('branches')->where('company_id', $id)->delete();
+                \DB::table('sale_items')->whereIn('sale_id', $saleIds)->delete();
+                \DB::table('sales')->where('company_id', $id)->delete();
 
-            // Users and their role pivots
-            \DB::table('role_user')->whereIn('user_id', $userIds)->delete();
-            \DB::table('users')->where('company_id', $id)->delete();
+                \DB::table('products')->where('company_id', $id)->delete();
+                \DB::table('branches')->where('company_id', $id)->delete();
 
-            // Finally the company
-            \DB::table('companies')->where('id', $id)->delete();
+                \DB::table('role_user')->whereIn('user_id', $userIds)->delete();
+                \DB::table('users')->where('company_id', $id)->delete();
+
+                \DB::table('companies')->where('id', $id)->delete();
+            } finally {
+                \DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            }
         });
 
         $count++;
