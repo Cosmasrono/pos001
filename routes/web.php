@@ -138,6 +138,11 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class)
         ->middleware('role:owner,super_admin,manager');
 
+    // Profile (any authenticated user)
+    Route::get('profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
+    Route::put('profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+    Route::put('profile/password', [App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password');
+
     // Logout
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::post('/password/change', [App\Http\Controllers\UserController::class, 'changePassword'])->name('password.change');

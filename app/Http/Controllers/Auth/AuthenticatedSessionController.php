@@ -59,13 +59,9 @@ class AuthenticatedSessionController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             // CHECK 1: Verify email is verified
             if (!Auth::user()->hasVerifiedEmail()) {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-                
-                return back()->withErrors([
-                    'email' => 'Please verify your email address before logging in. Check your inbox for the verification link.',
-                ])->onlyInput('email');
+                $request->session()->regenerate();
+                return redirect()->route('verification.notice')
+                    ->with('info', 'Please verify your email address. Use the button below to resend the link.');
             }
 
             // CHECK 2: Check if the system is deactivated

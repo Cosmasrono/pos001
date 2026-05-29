@@ -828,6 +828,9 @@
                         </div>
                     </div>
                 </div>
+                <a href="{{ route('profile.show') }}" class="sidebar-logout-btn" style="text-decoration:none;display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <i class="bi bi-person-circle"></i> My Profile
+                </a>
                 <form action="{{ route('logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="sidebar-logout-btn">

@@ -18,6 +18,10 @@
                         <div class="alert alert-success">{{ session('success') }}</div>
                     @endif
 
+                    @if (session('info'))
+                        <div class="alert alert-info">{{ session('info') }}</div>
+                    @endif
+
                     <form method="POST" action="{{ route('verification.send') }}" class="d-inline">
                         @csrf
                         <button type="submit" class="btn btn-primary">
