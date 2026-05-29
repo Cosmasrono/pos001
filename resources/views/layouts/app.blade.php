@@ -800,6 +800,15 @@
 
                 @if(auth()->check() && auth()->user()->isPlatformAdmin())
                 <div class="nav-item">
+                    <a id="tour-nav-system-control" class="nav-link {{ request()->routeIs('system.*') ? 'active' : '' }}"
+                       href="{{ route('system.control') }}">
+                        <i class="bi bi-gear nav-icon"></i> System Control
+                    </a>
+                </div>
+                @endif
+
+                @if(auth()->check() && auth()->user()->isPlatformAdmin())
+                <div class="nav-item">
                     <a id="tour-nav-platform" class="nav-link {{ request()->routeIs('platform.*') ? 'active' : '' }}"
                        href="{{ route('platform.index') }}">
                         <i class="bi bi-shield-lock nav-icon"></i> Platform

@@ -94,50 +94,156 @@
                 <div class="card-header bg-white py-3 border-0 text-center">
                     <h5 class="mb-0 fw-bold">Subscription Management</h5>
                 </div>
-                <div class="card-body p-4 p-md-5">
-                    <div class="text-center mb-4">
-                        @if($subscriptionStatus === 'active')
-                            <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
-                                <i class="bi bi-calendar-check fs-2"></i>
-                            </div>
-                            <h4 class="mt-3 fw-bold text-success">Active Subscription</h4>
-                        @else
-                            <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 80px; height: 80px;">
-                                <i class="bi bi-calendar-x fs-2"></i>
-                            </div>
-                            <h4 class="mt-3 fw-bold text-danger">Subscription Expired</h4>
-                        @endif
-                        
-                        <p class="text-muted mt-2 small">
-                            Expires: <strong>{{ $subscriptionExpiresAt ? $subscriptionExpiresAt->format('M d, Y') : 'Not Set' }}</strong>
-                            ({{ $subscriptionExpiresAt ? $subscriptionExpiresAt->diffForHumans() : '' }})
-                        </p>
-                    </div>
+                <div class="card-body p-4 p-md-5 text-center">
 
-                    <form action="{{ route('system.subscription.update') }}" method="POST">
-                        @csrf
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-7">
-                                <label for="expires_at" class="form-label small fw-bold text-uppercase">Expiry Date</label>
-                                <input type="date" class="form-control form-control-sm" id="expires_at" name="expires_at" 
-                                       value="{{ $subscriptionExpiresAt ? $subscriptionExpiresAt->format('Y-m-d') : '' }}" required>
-                            </div>
-                            <div class="col-md-5">
-                                <label for="status" class="form-label small fw-bold text-uppercase">Status</label>
-                                <select class="form-select form-select-sm" id="status" name="status">
-                                    <option value="active" {{ $subscriptionStatus === 'active' ? 'selected' : '' }}>Active</option>
-                                    <option value="expired" {{ $subscriptionStatus === 'expired' ? 'selected' : '' }}>Expired</option>
-                                </select>
-                            </div>
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show text-start" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
-                        <button type="submit" class="btn btn-dark btn-sm w-100 rounded-pill py-2 shadow-sm">
-                            <i class="bi bi-save me-2"></i> Update Subscription
+                    @endif
+                    @if(session('warning'))
+                        <div class="alert alert-warning alert-dismissible fade show text-start" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>{{ session('warning') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
+                    <div class="d-flex flex-column gap-3">
+                        <button class="btn btn-success rounded-pill px-4 shadow-sm"
+                                data-bs-toggle="modal" data-bs-target="#activateCompanyModal">
+                            <i class="bi bi-check-circle me-2"></i> Activate
+                            <span class="badge bg-white text-success ms-1">{{ $suspendedCompanies->count() }}</span>
                         </button>
-                    </form>
+                        <button class="btn btn-outline-danger rounded-pill px-4 shadow-sm"
+                                data-bs-toggle="modal" data-bs-target="#deactivateCompanyModal">
+                            <i class="bi bi-slash-circle me-2"></i> Deactivate
+                            <span class="badge bg-danger text-white ms-1">{{ $activeCompanies->count() }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Activate Modal: lists suspended/expired companies --}}
+    <div class="modal fade" id="activateCompanyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold text-success"><i class="bi bi-check-circle me-2"></i>Activate a Company</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    @if($suspendedCompanies->isEmpty())
+                        <p class="text-muted text-center py-4 mb-0">No suspended or expired companies.</p>
+                    @else
+                        <table class="table align-middle mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Company</th>
+                                    <th>Owner</th>
+                                    <th>Status</th>
+                                    <th>Period</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($suspendedCompanies as $company)
+                                <tr>
+                                    <td class="ps-3 fw-semibold">{{ $company->name }}</td>
+                                    <td class="text-muted">{{ $company->owner?->email ?? '—' }}</td>
+                                    <td><span class="badge bg-danger">{{ ucfirst($company->subscription_status) }}</span></td>
+                                    <td colspan="2">
+                                        <form action="{{ route('system.company.manage') }}" method="POST">
+                                            @csrf
+                                            <input type="hidden" name="company_id" value="{{ $company->id }}">
+                                            <input type="hidden" name="action" value="activate">
+                                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                <select name="period" class="form-select form-select-sm" style="width:120px"
+                                                        onchange="toggleCustomActivate('{{ $company->id }}', this.value)">
+                                                    <option value="30">30 days</option>
+                                                    <option value="90">3 months</option>
+                                                    <option value="180">6 months</option>
+                                                    <option value="365" selected>1 year</option>
+                                                    <option value="custom">Custom</option>
+                                                </select>
+                                                <input type="date" name="custom_date" id="customActivate{{ $company->id }}"
+                                                       class="form-control form-control-sm d-none" style="width:140px"
+                                                       min="{{ now()->addDay()->format('Y-m-d') }}">
+                                                <button type="submit" class="btn btn-success btn-sm px-3">Activate</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Deactivate Modal: lists active/trial companies --}}
+    <div class="modal fade" id="deactivateCompanyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title fw-bold text-danger"><i class="bi bi-slash-circle me-2"></i>Deactivate a Company</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    @if($activeCompanies->isEmpty())
+                        <p class="text-muted text-center py-4 mb-0">No active companies.</p>
+                    @else
+                        <table class="table align-middle mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Company</th>
+                                    <th>Owner</th>
+                                    <th>Status</th>
+                                    <th>Expires</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($activeCompanies as $company)
+                                <tr>
+                                    <td class="ps-3 fw-semibold">{{ $company->name }}</td>
+                                    <td class="text-muted">{{ $company->owner?->email ?? '—' }}</td>
+                                    <td><span class="badge bg-success">{{ ucfirst($company->subscription_status) }}</span></td>
+                                    <td class="text-muted">
+                                        {{ $company->subscription_expires_at ? $company->subscription_expires_at->format('d M Y') : '—' }}
+                                    </td>
+                                    <td>
+                                        <form action="{{ route('system.company.manage') }}" method="POST">
+                                            @csrf
+                                            <input type="hidden" name="company_id" value="{{ $company->id }}">
+                                            <input type="hidden" name="action" value="suspend">
+                                            <input type="hidden" name="period" value="365">
+                                            <button type="submit" class="btn btn-danger btn-sm px-3"
+                                                    onclick="return confirm('Suspend {{ addslashes($company->name) }}?')">
+                                                Suspend
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <div class="row justify-content-center mt-4">
         <div class="col-lg-12">
@@ -161,4 +267,11 @@
         </div>
     </div>
 </div>
+<script>
+function toggleCustomActivate(id, value) {
+    const el = document.getElementById('customActivate' + id);
+    el.classList.toggle('d-none', value !== 'custom');
+    el.required = value === 'custom';
+}
+</script>
 @endsection

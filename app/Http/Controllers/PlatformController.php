@@ -97,48 +97,64 @@ class PlatformController extends Controller
         return back()->with('success', "{$company->name} has been suspended.");
     }
 
-   public function purgeBots(): RedirectResponse
-{
-    // Companies whose owner never logged in, no products, older than 1 hour
-    $bots = Company::whereHas('owner', fn($q) => $q->whereNull('last_login_at'))
-        ->doesntHave('products')
-        ->where('created_at', '<', Carbon::now()->subHour())
-        ->with('owner')
-        ->get();
+    public function purgeBots(): RedirectResponse
+    {
+        $bots = Company::whereHas('owner', fn($q) => $q->whereNull('last_login_at'))
+            ->doesntHave('products')
+            ->where('created_at', '<', Carbon::now()->subHour())
+            ->get();
 
-    $count = 0;
+        $count = 0;
 
-    foreach ($bots as $company) {
-        $id = $company->id;
+        foreach ($bots as $company) {
+            $id = $company->id;
 
-        \DB::transaction(function () use ($id) {
-            \DB::statement('SET FOREIGN_KEY_CHECKS=0');
-
-            try {
-                $branchIds = \DB::table('branches')->where('company_id', $id)->pluck('id');
+            \DB::transaction(function () use ($id) {
                 $saleIds   = \DB::table('sales')->where('company_id', $id)->pluck('id');
+                $invoiceIds= \DB::table('invoices')->where('company_id', $id)->pluck('id');
+                $loanIds   = \DB::table('loans')->where('company_id', $id)->pluck('id');
+                $branchIds = \DB::table('branches')->where('company_id', $id)->pluck('id');
+                $productIds= \DB::table('products')->where('company_id', $id)->pluck('id');
                 $userIds   = \DB::table('users')->where('company_id', $id)->pluck('id');
 
-                \DB::table('product_branch_stocks')->whereIn('branch_id', $branchIds)->delete();
-
+                // Deepest children first
+                \DB::table('ai_briefs')->where('company_id', $id)->delete();
+                \DB::table('subscription_payments')->where('company_id', $id)->delete();
                 \DB::table('sale_items')->whereIn('sale_id', $saleIds)->delete();
+                \DB::table('delivery_orders')->whereIn('sale_id', $saleIds)->delete();
+                \DB::table('trade_ins')->whereIn('sale_id', $saleIds)->delete();
                 \DB::table('sales')->where('company_id', $id)->delete();
-
+                \DB::table('invoice_items')->whereIn('invoice_id', $invoiceIds)->delete();
+                \DB::table('invoice_payments')->whereIn('invoice_id', $invoiceIds)->delete();
+                \DB::table('invoices')->where('company_id', $id)->delete();
+                \DB::table('loan_payments')->whereIn('loan_id', $loanIds)->delete();
+                \DB::table('loans')->where('company_id', $id)->delete();
+                \DB::table('stock_movements')->whereIn('product_id', $productIds)->delete();
+                \DB::table('inventory_predictions')->whereIn('product_id', $productIds)->delete();
+                \DB::table('product_branch_stocks')->whereIn('branch_id', $branchIds)->delete();
+                \DB::table('cart_items')->whereIn('user_id', $userIds)->delete();
+                \DB::table('expenses')->where('company_id', $id)->delete();
+                \DB::table('expense_categories')->where('company_id', $id)->delete();
+                \DB::table('purchase_orders')->where('company_id', $id)->delete();
+                \DB::table('suppliers')->where('company_id', $id)->delete();
+                \DB::table('customers')->where('company_id', $id)->delete();
+                \DB::table('shifts')->where('company_id', $id)->delete();
+                \DB::table('promotions')->where('company_id', $id)->delete();
+                \DB::table('categories')->where('company_id', $id)->delete();
                 \DB::table('products')->where('company_id', $id)->delete();
                 \DB::table('branches')->where('company_id', $id)->delete();
-
                 \DB::table('role_user')->whereIn('user_id', $userIds)->delete();
+
+                // Break circular FK: companies.owner_id → users
+                \DB::table('companies')->where('id', $id)->update(['owner_id' => null]);
+
                 \DB::table('users')->where('company_id', $id)->delete();
-
                 \DB::table('companies')->where('id', $id)->delete();
-            } finally {
-                \DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            }
-        });
+            });
 
-        $count++;
+            $count++;
+        }
+
+        return back()->with('success', "Purged {$count} bot registration(s).");
     }
-
-    return back()->with('success', "Purged {$count} bot registration(s).");
-}
 }

@@ -133,6 +133,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('system/control', [SystemControlController::class, 'index'])->name('system.control');
     Route::post('system/toggle', [SystemControlController::class, 'toggle'])->name('system.toggle');
     Route::post('system/subscription', [SystemControlController::class, 'updateSubscription'])->name('system.subscription.update');
+    Route::post('system/company', [SystemControlController::class, 'manageCompany'])->name('system.company.manage');
 
     // Users (Owner / Super Admin / Manager only)
     Route::resource('users', UserController::class)
