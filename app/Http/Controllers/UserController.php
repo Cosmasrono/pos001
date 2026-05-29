@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Branch;
+use App\Rules\ActiveEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -55,7 +56,7 @@ class UserController extends Controller
 
         $request->validate([
             'name'      => ['required', 'string', 'max:255'],
-            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email', new ActiveEmail()],
             'phone'     => ['nullable', 'string', 'max:15'],
             'password'  => ['required', 'confirmed', Rules\Password::defaults()],
             'role_id'   => ['required', 'exists:roles,id'],
@@ -117,7 +118,7 @@ class UserController extends Controller
 
         $request->validate([
             'name'      => ['required', 'string', 'max:255'],
-            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email'     => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,' . $user->id, new ActiveEmail()],
             'phone'     => ['nullable', 'string', 'max:15'],
             'password'  => ['nullable', 'confirmed', Rules\Password::defaults()],
             'role_id'   => ['required', 'exists:roles,id'],

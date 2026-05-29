@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Role;
 use App\Models\User;
+use App\Rules\ActiveEmail;
 use App\Rules\CaptchaRule;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -39,7 +40,7 @@ class RegisteredUserController extends Controller
         $request->validate([
             'shop_name'          => ['required', 'string', 'max:255'],
             'name'               => ['required', 'string', 'max:255'],
-            'email'              => ['required', 'string', 'lowercase', 'email', 'max:255'],
+            'email'              => ['required', 'string', 'lowercase', 'email', 'max:255', new ActiveEmail()],
             'phone'              => ['nullable', 'string', 'max:20'],
             'password'           => ['required', 'confirmed', Rules\Password::defaults()],
             'g-recaptcha-response' => $captchaRules,
