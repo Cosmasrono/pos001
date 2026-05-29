@@ -166,9 +166,19 @@
      ALL COMPANIES TABLE
 ═══════════════════════════════════════ --}}
 <div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white border-bottom-0 pt-3 pb-2 d-flex align-items-center justify-content-between">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul me-1"></i> All Companies</h6>
-        <span class="badge bg-light text-dark border">{{ $companies->count() }} total</span>
+    <div class="card-header bg-white border-bottom-0 pt-3 pb-2">
+        <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul me-1"></i> All Companies</h6>
+            <span class="badge bg-light text-dark border" id="companyCount">{{ $companies->count() }} shown</span>
+        </div>
+        {{-- Status filter --}}
+        <div class="btn-group btn-group-sm flex-wrap" role="group" id="statusFilter">
+            <button type="button" class="btn btn-dark active" data-filter="all">All</button>
+            <button type="button" class="btn btn-outline-success" data-filter="active">Active</button>
+            <button type="button" class="btn btn-outline-warning" data-filter="trial">Trial</button>
+            <button type="button" class="btn btn-outline-danger" data-filter="expired">Expired</button>
+            <button type="button" class="btn btn-outline-secondary" data-filter="suspended">Suspended</button>
+        </div>
     </div>
     <div class="table-responsive">
         <table class="table table-hover mb-0">
@@ -187,7 +197,7 @@
             </thead>
             <tbody>
                 @forelse($companies as $c)
-                    <tr class="tenant-row">
+                    <tr class="tenant-row" data-status="{{ $c['subscription_status'] }}">
                         <td>
                             <div class="fw-semibold">{{ $c['name'] }}</div>
                             <small class="text-muted">{{ $c['slug'] }}</small>
@@ -260,6 +270,10 @@
                 @empty
                     <tr><td colspan="9" class="text-center text-muted py-4">No companies yet.</td></tr>
                 @endforelse
+                {{-- Shown when a filter matches nothing --}}
+                <tr id="noMatchRow" style="display:none;">
+                    <td colspan="9" class="text-center text-muted py-4">No companies with this status.</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -302,3 +316,54 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const buttons   = document.querySelectorAll('#statusFilter button');
+    const rows      = document.querySelectorAll('.tenant-row');
+    const counter   = document.getElementById('companyCount');
+    const noMatch   = document.getElementById('noMatchRow');
+
+    // Maps each filter to its solid/outline button colour so we can
+    // restore the outline look on the buttons that aren't selected.
+    const colors = {
+        all:       'dark',
+        active:    'success',
+        trial:     'warning',
+        expired:   'danger',
+        suspended: 'secondary',
+    };
+
+    function setActive(activeBtn) {
+        buttons.forEach(b => {
+            const c = colors[b.dataset.filter];
+            b.classList.remove('active', 'btn-' + c, 'btn-outline-' + c);
+            if (b === activeBtn) {
+                b.classList.add('active', 'btn-' + c);
+            } else {
+                // 'all' has no outline variant in the original, keep it dark-outline
+                b.classList.add(b.dataset.filter === 'all' ? 'btn-outline-dark' : 'btn-outline-' + c);
+            }
+        });
+    }
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const filter = this.dataset.filter;
+            setActive(this);
+
+            let visible = 0;
+            rows.forEach(row => {
+                const match = (filter === 'all' || row.dataset.status === filter);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+
+            counter.textContent = visible + ' shown';
+            if (noMatch) noMatch.style.display = (visible === 0) ? '' : 'none';
+        });
+    });
+});
+</script>
+@endpush
